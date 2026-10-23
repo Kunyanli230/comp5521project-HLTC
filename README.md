@@ -1,4 +1,16 @@
-# COMP5521 Lab 4: A Simple HTLC Swap on Sepolia
+# Group 4 HTLC Project
+
+已完成工作的记录：
+Task A:
+郭盈盈：
+李佳阳：
+
+Task：
+李家榕：
+李昆晏：
+
+Task C：
+周翮霖：
 
 This classroom demo builds on Lab 3 and uses the `MySimpleToken` (MST) contract already deployed on Ethereum Sepolia. Alice and Bob use two Sepolia accounts to exchange MST and native Sepolia ETH through one small HTLC contract. The balances and transactions are real Sepolia state.
 
