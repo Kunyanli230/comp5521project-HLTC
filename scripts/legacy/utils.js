@@ -1,3 +1,4 @@
+// Historical single-chain classroom example. Not used by the project workflow.
 const hre = require("hardhat");
 require("dotenv").config();
 
@@ -15,6 +16,6 @@ async function signerFor(role) {
 }
 
 function htlcAddress() { return required("SEPOLIA_SIMPLE_HTLC_ADDRESS"); }
-function swapId(asset) { return required(asset === "mst" ? "MST_SWAP_ID" : "ETH_SWAP_ID"); }
+function swapId(asset) { return required(asset === "rain" ? "RAIN_SWAP_ID" : "ETH_SWAP_ID"); }
 
 module.exports = { htlcAddress, required, signerFor, swapId };

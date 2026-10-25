@@ -1,11 +1,16 @@
 {
-  "name": "lab4-comp5521-2026",
+  "name": "comp5521-cross-chain-htlc",
   "version": "1.0.0",
-  "description": "COMP5521 Lab 4: a minimal single-chain HTLC exchange on Sepolia",
+  "description": "COMP5521 Rain / ETH exchange on Ethereum Sepolia and Arbitrum Sepolia",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "secret": "hardhat run scripts/generateSecret.js"
+    "secret": "hardhat run scripts/generateSecret.js",
+    "config:check": "node scripts/checkConfig.js",
+    "deploy": "hardhat run scripts/deploy.js",
+    "swap:success": "hardhat run scripts/successfulSwap.js",
+    "abi:export": "hardhat run scripts/exportAbi.js",
+    "test:cross-chain": "hardhat compile && node test/integration/crossChain.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",

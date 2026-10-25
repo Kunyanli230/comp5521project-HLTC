@@ -14,19 +14,19 @@ describe("SimpleHTLC", function () {
     return { alice, bob, token, htlc, preimage, hashlock, timelock };
   }
 
-  it("uses one hashlock to release locked MST and ETH", async function () {
+  it("uses one hashlock to release locked Rain and ETH", async function () {
     const { alice, bob, token, htlc, preimage, hashlock, timelock } = await setup();
-    const mst = ethers.parseUnits("100", 18);
+    const rain = ethers.parseUnits("100", 18);
     const eth = ethers.parseEther("1");
-    const mstId = ethers.keccak256(ethers.toUtf8Bytes("mst-swap"));
+    const rainId = ethers.keccak256(ethers.toUtf8Bytes("rain-swap"));
     const ethId = ethers.keccak256(ethers.toUtf8Bytes("eth-swap"));
-    await token.approve(await htlc.getAddress(), mst);
-    await htlc.createERC20Swap(mstId, bob.address, await token.getAddress(), mst, hashlock, timelock);
+    await token.approve(await htlc.getAddress(), rain);
+    await htlc.createERC20Swap(rainId, bob.address, await token.getAddress(), rain, hashlock, timelock);
     await htlc.connect(bob).createETHSwap(ethId, alice.address, hashlock, timelock, { value: eth });
     await htlc.claim(ethId, preimage);
-    await htlc.connect(bob).claim(mstId, preimage);
-    expect(await token.balanceOf(bob.address)).to.equal(mst);
-    expect((await htlc.swaps(mstId)).claimed).to.equal(true);
+    await htlc.connect(bob).claim(rainId, preimage);
+    expect(await token.balanceOf(bob.address)).to.equal(rain);
+    expect((await htlc.swaps(rainId)).claimed).to.equal(true);
     expect((await htlc.swaps(ethId)).claimed).to.equal(true);
   });
 });
