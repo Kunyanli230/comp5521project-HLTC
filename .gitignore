@@ -1,5 +1,5 @@
 node_modules/
-.env
+# Actual test configuration is shared in this private repository by owner request.
 .env.*
 !.env.example
 cache/
@@ -7,3 +7,5 @@ artifacts/
 coverage/
 typechain-types/
 ignition/deployments/
+.local/
+runs/

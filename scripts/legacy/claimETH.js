@@ -1,3 +1,4 @@
+// Historical single-chain classroom example. Not used by the project workflow.
 const hre = require("hardhat");
 const { htlcAddress, required, signerFor, swapId } = require("./utils");
 

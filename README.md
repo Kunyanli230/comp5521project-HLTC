@@ -19,152 +19,119 @@ Task：
 Task C：
 周翮霖：
 
-This classroom demo builds on Lab 3 and uses the `MySimpleToken` (MST) contract already deployed on Ethereum Sepolia. Alice and Bob use two Sepolia accounts to exchange MST and native Sepolia ETH through one small HTLC contract. The balances and transactions are real Sepolia state.
+# Rain / ETH 双链交换（B1、B2）
 
-This is a single-chain teaching exercise, not a complete cross-chain protocol. The final project can extend the ideas to separate chains, for example MST on Ethereum Sepolia and ETH on Arbitrum Sepolia. No bridge or contract here communicates across chains.
+当前入口使用 Ethereum Sepolia 上的 Rain ERC20 和 Arbitrum Sepolia 上的原生 ETH。两份合约独立部署，共用 keccak256 hashlock，由链下脚本协调。代币相关配置统一使用 Rain 命名；RAIN_ADDRESS 指向需要使用的课程 ERC20 地址，不会修改链上代币本身的名称。
 
-## Swap flow
+## 当前完成与待配置
 
-```text
-Alice locks MST for Bob ─┐
-                         ├─ same hashlock / secret
-Bob locks ETH for Alice ┘
+- 已实现：ERC20HTLC / ETHHTLC 对接基线、网络配置、部署记录、成功交换脚本、ABI、接口约定和本地测试。
+- 已验证：编译、合约规则测试，以及两个独立本地节点上的重复成功交换。
+- 已执行真实测试网部署，并于 2026-10-25 完成 100 Rain / 0.001 ETH 交换；两份合约均已部署、两笔交换状态均为 Claimed。部署记录见 `deployments/`。
+- 本次不实现前端、B3 状态查看入口或 B4 自动退款协调。两份合约已提供退款函数及状态字段供负责组员对接。
 
-Alice claims ETH and reveals the secret on Sepolia.
-Bob uses that secret to claim MST on Sepolia.
+## 安装与本地验证
+
+建议使用 Node.js 22 LTS。Windows 如阻止 PowerShell 的 npm/npx 脚本，使用 `npm.cmd` / `npx.cmd`。
+
+```powershell
+npm.cmd ci
+npm.cmd run compile
+npm.cmd test
+npm.cmd run test:cross-chain
+npm.cmd run abi:export
 ```
 
-> **Classroom scope:** this lesson only demonstrates both parties completing the exchange before the timelock expires. Timeout refunds are not covered, and this simplified contract has no refund function. If a lock expires before it is claimed, its assets remain locked in the contract. Use only small testnet amounts and follow the steps carefully.
+`test:cross-chain` 自动启动并结束两个独立节点（chain ID 31337 / 31338，随机本机端口），运行真实 RPC 交易并核对余额、状态、秘密事件、部署复用和重复交换。测试证据输出到系统临时目录，不生成虚假的公网链接。
 
-## Prerequisites
+## B1：配置与部署
 
-- Node.js LTS and npm.
-- Two disposable MetaMask accounts with Sepolia enabled. Alice is configured as signer 0 and Bob as signer 1.
-- Sepolia ETH in both accounts for gas; Bob also needs enough Sepolia ETH to lock the demo amount.
-- The deployed Lab 3 `MySimpleToken` address and enough MST in Alice's account.
-- A Sepolia RPC endpoint, for example from [Infura](https://app.infura.io/key/active-endpoints).
-- Never use mainnet accounts or commit private keys. A blockchain transaction and revealed secret are public and irreversible.
+本私有仓库按所有者要求提交了本次测试使用的 `.env`（测试账户、RPC、API Key 和已部署地址）。使用现有测试环境时直接检查配置；更换环境时参考 `.env.example`。
 
-## 1. Install and configure
+只在本地 `.env` 填写：
 
-> Windows PowerShell note: if your computer blocks `npx.ps1`, replace `npx` in the commands below with `npx.cmd` (for example, `npx.cmd hardhat compile`).
+| 配置 | 内容 |
+|---|---|
+| `SEPOLIA_RPC_URL` | Ethereum Sepolia RPC，chain ID 11155111 |
+| `ARBITRUM_SEPOLIA_RPC_URL` | Arbitrum Sepolia RPC，chain ID 421614 |
+| `ALICE_PRIVATE_KEY` / `BOB_PRIVATE_KEY` | 两个不同测试账户的 0x 开头私钥 |
+| `ALICE_ADDRESS` / `BOB_ADDRESS` | 可选；填写时必须与对应私钥匹配 |
+| `RAIN_ADDRESS` | Ethereum Sepolia 上现有 Rain ERC20 地址 |
+| `RAIN_AMOUNT` / `ETH_AMOUNT` | 人类可读数量，默认 100 / 0.001 |
 
-```bash
-npm install
+Alice 和 Bob 都需要两条链的测试 ETH 支付 gas，Alice 还需要足够的 Rain；Bob 在 Arbitrum 的余额须覆盖锁定 ETH 和 gas。Alice 默认在两条链部署合约。本次测试账户及服务配置按所有者要求随私有仓库共享；未公开的运行秘密仍单独保存在 `.local/`。
+
+```powershell
+npm.cmd run config:check
+npm.cmd run deploy
 ```
 
-Copy `.env.example` to `.env`, then set the RPC URL, both test-account private keys and addresses, and the Lab 3 token address:
+部署脚本自己创建两条 RPC 连接，不需要加 `--network`。它逐笔等待配置的确认数，验证 runtime bytecode，生成：
 
-```env
-SEPOLIA_RPC_URL="https://sepolia.infura.io/v3/YOUR_PROJECT_ID"
-ALICE_PRIVATE_KEY="ALICE_TESTNET_PRIVATE_KEY"
-BOB_PRIVATE_KEY="BOB_TESTNET_PRIVATE_KEY"
-ALICE_ADDRESS="ALICE_METAMASK_ADDRESS"
-BOB_ADDRESS="BOB_METAMASK_ADDRESS"
-MST_ADDRESS="LAB3_MST_ADDRESS_ON_SEPOLIA"
+- `deployments/sepolia.json`：ERC20HTLC 地址、Rain 地址、Alice/Bob 公共地址、部署交易与链接。
+- `deployments/arbitrumSepolia.json`：ETHHTLC 地址、参与账户、部署交易与链接。
+
+脚本自动读取这些记录。也可在 `.env` 填写 `SEPOLIA_ERC20_HTLC_ADDRESS` 和 `ARBITRUM_SEPOLIA_ETH_HTLC_ADDRESS`，交换时会优先使用并验证这些地址。已有确认部署会复用；部分部署失败时保留已提交交易记录，不会假报两条链全部完成。未确认记录需要先人工核实，再继续部署。
+
+网络元数据见 `config/networks.js`；公开部署记录说明见 [deployments/README.md](deployments/README.md)。Arbitrum RPC 与 chain ID 核对自[官方文档](https://docs.arbitrum.io/chain-info)。
+
+## B2：完整成功交换
+
+```powershell
+npm.cmd run swap:success
 ```
 
-`ETHERSCAN_API_KEY` is optional and only used if you choose to verify the contract source. It is not needed to compile, deploy, or use the demo.
+一次运行完成：
 
-Compile and run local tests:
+1. 校验两条链 ID、合约代码、账户、Rain 精度和双方资金。
+2. 随机生成 32 字节秘密、共同 hashlock 和两个不同的 swap ID，私密保存秘密。
+3. Alice approve Rain 并等待确认，在 Sepolia 锁 Rain 给 Bob，并等待确认。
+4. Bob 读取并核验 Rain 锁的双方、代币、数量、hashlock、期限和 Active 状态。
+5. Bob 在 Arbitrum Sepolia 锁 ETH 给 Alice，等待确认；Alice 再核验两条链的锁和时序。
+6. Alice 领取 ETH，等待确认。Bob 从该链已确认的 `SwapClaimed` 事件取得秘密。
+7. Bob 用事件中的秘密领取 Rain，等待确认；分别检查两条链为 Claimed 并打印每步交易链接。
 
-```bash
-npx hardhat compile
-npx hardhat test
-```
+默认 Rain 锁 7200 秒、ETH 锁 3600 秒、最小期限差 600 秒，领取前至少保留 120 秒。时间来自各链区块，不使用电脑时钟。`SEPOLIA_CONFIRMATIONS` / `ARBITRUM_SEPOLIA_CONFIRMATIONS` 默认均为 2，`TX_TIMEOUT_MS` 默认 300000。确认策略适用于课程演示，不等同于跨链或 L1 最终结算保证。
 
-## 2. Deploy the HTLC
+### 已验证的测试网部署和成功交换（2026-10-25）
 
-Deploy the single `SimpleHTLC` contract to Sepolia using Alice's account:
+| 项目 | 网络 | 地址 |
+|---|---|---|
+| Rain（链上符号 MST，18 decimals） | Ethereum Sepolia | `0xf49d4F8A697C09D4daf942938A2C4cb5593164dC` |
+| ERC20HTLC | Ethereum Sepolia | `0x98eFb0B12BA43d5efc3723fFf839Fee29B8f72A3` |
+| ETHHTLC | Arbitrum Sepolia | `0x6c4826b0D6Ad8aB8dBbeD368f45E963306626aA2` |
 
-```bash
-npx hardhat run scripts/deploySimpleHTLC.js --network sepolia
-```
+| 动作 | 已确认的真实交易 |
+|---|---|
+| 部署 ERC20HTLC | [Sepolia 交易](https://sepolia.etherscan.io/tx/0x9b9cfe42d658a1a993058d20ed12b277bc01950d099a2b9e05be8fa686bea8bd) |
+| 部署 ETHHTLC | [Arbitrum Sepolia 交易](https://sepolia.arbiscan.io/tx/0x1242d34a10356381bba907a31409300f68d64ae189d82b356413bc45c9198b58) |
+| 授权 Rain | [Sepolia 交易](https://sepolia.etherscan.io/tx/0xde136aa7582cf4fde1f8494c034ee8853d778e95d73e0a678804186d8f01bbfc) |
+| 锁定 100 Rain | [Sepolia 交易](https://sepolia.etherscan.io/tx/0x8ef9e2345035526a3e78086c16d55300a08952866c04f8403d6eec5fb022e165) |
+| 锁定 0.001 ETH | [Arbitrum Sepolia 交易](https://sepolia.arbiscan.io/tx/0x886f7a8e50370a4f94bacf38256528a17f91585b4cbc4cb3ea182de9d30ee7b1) |
+| Alice 领取 ETH | [Arbitrum Sepolia 交易](https://sepolia.arbiscan.io/tx/0xe6110e61d5acc2d17aae909840ff1afd043e5e1bc88d31bd68f9c6cf4a8cfcb1) |
+| Bob 领取 Rain | [Sepolia 交易](https://sepolia.etherscan.io/tx/0xed0d9ac507c3c58633d843cacdfcc67e1f11ae12b9fc0b4a59281960af596110) |
 
-Copy the printed address into `.env`:
+每笔交易等待两次确认。完整公开证据见 `deployments/successful-swap-2026-10-25.json`。Alice 的 100 Rain 已转给 Bob；再次运行默认交换前，需要先向 Alice 补回 Rain，并检查两条链 gas 余额。
 
-```env
-SEPOLIA_SIMPLE_HTLC_ADDRESS="0x..."
-```
+公开运行记录位于 `runs/<runId>.json`，包含双链合约、swap ID、hashlock、金额、期限、交易哈希/链接/确认状态及最终状态。秘密文件位于 `.local/secrets/<runId>.json`，并由 Git 忽略。Windows 文件权限由账户 ACL 决定，应保留在个人目录。
 
-## 3. Generate a secret and hashlock
+若中途失败，脚本退出并将运行标记为 `incomplete`。先检查记录中的 pending/confirmed 交易及链上状态；超时不代表交易没有上链。保留秘密并使用固定接口按状态继续领取，或到期后由原发送人调用 `refund(swapId)`。本次没有自动恢复或重跑续接功能；直接重跑会创建一组新 ID。
 
-```bash
-npx hardhat run scripts/generateSecret.js
-```
+## Task A / C 对接
 
-Copy both printed values into `.env`. Keep `SWAP_PREIMAGE` private until Alice claims ETH. Both locks use `SWAP_HASHLOCK`.
+完整函数签名、字段、事件、错误、状态值和时间边界见 [docs/INTERFACE.md](docs/INTERFACE.md)。前端直接导入 `config/abi/ERC20HTLC.json` / `ETHHTLC.json`，网络及地址来自公开部署记录；不要把 `.env` 私钥暴露到浏览器。
 
-```env
-SWAP_PREIMAGE="0x..."
-SWAP_HASHLOCK="0x..."
-```
+| 动作 | ERC20HTLC | ETHHTLC |
+|---|---|---|
+| 锁定 | `createERC20Swap(id, receiver, token, amount, hashlock, timelock)` | `createETHSwap(id, receiver, hashlock, timelock, {value})` |
+| 领取 | `claim(id, preimage)` | `claim(id, preimage)` |
+| 退款 | `refund(id)` | `refund(id)` |
+| 查询 | `swaps(id)` | `swaps(id)` |
 
-## 4. Check starting balances
+两份合约均发出 `SwapCreated`、`SwapClaimed`、`SwapRefunded`。状态为 0=None、1=Active、2=Claimed、3=Refunded。组员可在固定接口上完善实现；修改 runtime 后需重新编译和部署。
 
-```bash
-npx hardhat run scripts/checkBalances.js --network sepolia
-```
+## 与课堂例子的区别和贡献记录
 
-Record Alice and Bob's MST and ETH balances. Gas fees will also change each sender's ETH balance.
+原单链合约保留用于历史参考，教学脚本移至 `scripts/legacy/`，说明见 [docs/LEGACY.md](docs/LEGACY.md)。新流程使用两条链、独立合约、长短期限、确认与锁仓核验、链上事件传递秘密和公开结果记录。
 
-## 5. Lock MST and ETH
-
-Alice approves the HTLC contract to use MST, then locks MST for Bob:
-
-```bash
-npx hardhat run scripts/lockMST.js --network sepolia
-```
-
-Copy `MST_SWAP_ID` from the output into `.env`.
-
-Bob locks native ETH for Alice:
-
-```bash
-npx hardhat run scripts/lockETH.js --network sepolia
-```
-
-Copy `ETH_SWAP_ID` from the output into `.env`. Both commands create a separate on-chain lock with the same hashlock.
-
-Inspect the lock records and current balances:
-
-```bash
-npx hardhat run scripts/checkSwap.js --network sepolia
-npx hardhat run scripts/checkBalances.js --network sepolia
-```
-
-The locked assets are held by `SimpleHTLC`; balances in Alice's and Bob's wallets have decreased.
-
-## 6. Claim the assets
-
-Alice claims Bob's locked ETH using the secret. This transaction reveals the preimage publicly:
-
-```bash
-npx hardhat run scripts/claimETH.js --network sepolia
-```
-
-Bob then uses the same preimage to claim Alice's MST:
-
-```bash
-npx hardhat run scripts/claimMST.js --network sepolia
-```
-
-Check the final swap status and wallet balances:
-
-```bash
-npx hardhat run scripts/checkSwap.js --network sepolia
-npx hardhat run scripts/checkBalances.js --network sepolia
-```
-
-Alice should have received ETH and Bob should have received MST. Compare with the starting balances; account for gas costs on ETH balances.
-
-## Project files
-
-- `contracts/SimpleHTLC.sol`: one minimal classroom contract that escrows either ERC20 MST or native ETH and checks the hashlock and timelock on claim.
-- `scripts/deploySimpleHTLC.js`: deploys the contract on Sepolia.
-- `scripts/generateSecret.js`: generates a random preimage and its hashlock locally.
-- `scripts/lockMST.js` and `scripts/lockETH.js`: approve and lock the two assets.
-- `scripts/claimETH.js` and `scripts/claimMST.js`: claim each asset with the preimage.
-- `scripts/checkSwap.js` and `scripts/checkBalances.js`: inspect on-chain swap states and wallet balances.
-- `test/SimpleHTLC.js`: local test for the two asset paths and shared-secret claim flow.
-- `contracts/TestToken.sol`: local test token only; the Sepolia demo uses the Lab 3 MST deployment.
+AI 辅助文件与函数清单见 [docs/AI_ASSISTANCE.md](docs/AI_ASSISTANCE.md)，供实际审查和报告披露使用。本仓库此次未实现隐私扩展，也未声称完成其他组员负责的项目组件。

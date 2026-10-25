@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "network": "arbitrumSepolia",
+  "chainId": 421614,
+  "contract": "ETHHTLC",
+  "rpcEnv": "ARBITRUM_SEPOLIA_RPC_URL",
+  "explorer": "https://sepolia.arbiscan.io",
+  "deployer": "0x6BdC4C6fC34651E19aA35AFcd568BB8baF77Fa79",
+  "accounts": {
+    "alice": "0x6BdC4C6fC34651E19aA35AFcd568BB8baF77Fa79",
+    "bob": "0x8466E5f6A23977baD8A46Af21d81525048474eE8"
+  },
+  "rainAddress": "0xf49d4F8A697C09D4daf942938A2C4cb5593164dC",
+  "status": "confirmed",
+  "createdAt": "2026-10-25T02:53:29.137Z",
+  "address": "0x6c4826b0D6Ad8aB8dBbeD368f45E963306626aA2",
+  "transaction": {
+    "label": "Deploy ETHHTLC",
+    "network": "arbitrumSepolia",
+    "chainId": 421614,
+    "hash": "0x1242d34a10356381bba907a31409300f68d64ae189d82b356413bc45c9198b58",
+    "url": "https://sepolia.arbiscan.io/tx/0x1242d34a10356381bba907a31409300f68d64ae189d82b356413bc45c9198b58",
+    "status": "confirmed",
+    "blockNumber": 322566104,
+    "confirmations": 2
+  }
+}

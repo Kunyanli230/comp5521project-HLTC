@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @notice A deliberately small, single-chain HTLC used in class.
-/// It can escrow either the Lab 3 MST token or native Sepolia ETH.
+/// It can escrow either the Rain token or native Sepolia ETH.
 contract SimpleHTLC is ReentrancyGuard {
     enum AssetType { ERC20, ETH }
 
