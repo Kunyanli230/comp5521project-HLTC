@@ -13,3 +13,18 @@
 | README、配置模板、接口文档与旧例子整理 | 操作说明、公开元数据、Rain 重命名 |
 
 原有 `SimpleHTLC` 教学合约保留；分步教学脚本移至 `scripts/legacy/`。新增合约是明确标记的集成基线，不表示其他组员已完成其负责模块。公网部署和测试结果只能在真实执行后记录，不能把本地测试地址或哈希作为公网证据。
+
+## Task A1/A2/A5 锁仓与安全测试（分支 `taskA/lock-safety`，2026-11-04）
+
+工具：Claude Code（Claude Opus 5.5）。未修改生产合约（`HTLCBase`、`ERC20HTLC`、`ETHHTLC`、`TestToken`），接口不变，无需重新部署；`claim()/refund()` 属 A3/A4，仅在测试中调用。
+
+| 文件 | AI 辅助内容 |
+|---|---|
+| `test/TaskA_LockSafety.js` | 起草测试：锁仓记录、输入校验、重复 ID、代币转账安全、ETH 拒收、重入 |
+| `contracts/test/FeeOnTransferToken.sol` | 扣费型代币，验证前后余额检查 |
+| `contracts/test/ETHRejecter.sol` | 拒收 ETH 合约，验证 `ETHTransferFailed` 且交换保持可退款 |
+| `contracts/test/ReentrantReceiver.sol` | 重入攻击合约，验证 `nonReentrant` |
+| `contracts/test/HookToken.sol` | 带回调的 ERC20，用于 ERC20 支付及 `createERC20Swap` 重入测试 |
+| `docs/TASK_A_EXPLAIN.md` | 起草函数说明文档 |
+
+`contracts/test/` 下合约仅用于本地测试，不会被部署。源码中不逐个标注，以本文件为准。

@@ -33,3 +33,9 @@
 - 完成后独立读取两条链：两个 swap 的 status 均为 2 (Claimed)，Alice Rain=0、Bob Rain=100。
 - 公开部署及七笔交易证据见 `deployments/sepolia.json`、`deployments/arbitrumSepolia.json`、`deployments/successful-swap-2026-10-25.json`。
 - 本次没有执行公网退款演示或浏览器源码验证。
+
+## 2026-11-04 Task A1/A2/A5 本地测试（分支 `taskA/lock-safety`）
+
+- `npx hardhat test`：53 项通过（原有 13 项 + `test/TaskA_LockSafety.js` 新增 40 项），Node.js 22.23.4，solc 0.8.20。
+- 变异检查：临时删除 `createERC20Swap` 的前后余额检查和 `_create` 的 `receiver == msg.sender` 校验后，新增测试有 3 项失败（扣费型代币、两种资产的发送人=接收人）；之后已用 git 恢复合约。
+- 生产合约未改动，无需重新部署；未执行任何公网交易。
