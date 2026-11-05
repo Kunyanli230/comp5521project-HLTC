@@ -10,7 +10,7 @@ const { ROOT, artifact, close, errorMessage } = require("../../scripts/lib/runti
 const { deployChain } = require("../../scripts/deploy");
 const { runSuccessfulSwap } = require("../../scripts/lib/protocol");
 const { readSide, findRevealedPreimage, pickSigner, refundIfAllowed, loadRun, makeJournal } = require("../../scripts/lib/recovery");
-const { readStatus } = require("../../scripts/status");
+const { readStatus, printStatus } = require("../../scripts/status");
 const { refundRun } = require("../../scripts/refund");
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -89,6 +89,7 @@ async function main() {
     assert.equal(initialStatus.rain.state, "CLAIMABLE");
     assert.equal(initialStatus.eth.state, "CLAIMABLE");
     assert.equal(initialStatus.preimageKnown, false);
+    assert.equal(initialStatus.preimage, null);
     assert.equal(fs.readFileSync(runFile, "utf8"), runBeforeStatus, "status must not write the record");
     assert.equal((await refundRun(chains, options, runFile, loaded.run, "auto")).exitCode, 2);
     const early = await refundIfAllowed(eth, report.eth.swapId, options.minWindow, journal);
@@ -145,6 +146,10 @@ async function main() {
     assert.equal((await refundIfAllowed(eth, completed.eth.swapId, options.minWindow, journal)).refunded, false);
     assert.equal(await eth.provider.getBlockNumber(), claimedHeight, "claimed locks must not be refunded");
     const completedStatus = await readStatus(chains, options, completed);
+    const json = JSON.parse(JSON.stringify(completedStatus));
+    assert.equal(json.preimage, revealed);
+    assert.equal(ethers.keccak256(json.preimage), json.hashlock);
+    printStatus(completedStatus);
     assert.equal(completedStatus.preimageKnown, true);
     assert.equal(completedStatus.rain.state, "CLAIMED");
     assert.deepEqual(completedStatus.rain.actions, []);

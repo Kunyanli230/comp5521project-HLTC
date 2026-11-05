@@ -211,6 +211,14 @@ describe("B3 cross-chain advice", function () {
     });
   }
 
+  for (const state of ["CLAIMABLE", "CLOSING"]) {
+    it(`warns Bob about inverted windows when ETH is ${state}`, function () {
+      const text = advise(view("REFUNDABLE", 0), view(state), false).join();
+      expect(text).to.include("时锁").and.include("风险").and.include("Bob");
+      expect(text).to.include("领取 ETH").and.include("退回 Rain");
+    });
+  }
+
   it("handles completed swaps without requiring active-lock metadata", function () {
     expect(advise({ state: "CLAIMED" }, { state: "CLAIMED" }, true).join()).to.include("交换完成");
     expect(advise({ state: "REFUNDED" }, { state: "REFUNDED" }, false).join()).to.include("全部退回");

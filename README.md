@@ -139,6 +139,8 @@ npm run refund -- <runId> auto
 | `REFUNDABLE` | sender 退款；`区块时间 == timelock` 即进入此状态 |
 | `CLAIMED` / `REFUNDED` | 无，不再提供领取或退款操作 |
 
+状态 JSON 的 `preimage` 来自 Arbitrum 的已核验领取事件，尚未找到时为 `null`。终端在核验成功时显示原文、计算所得哈希、运行记录的 hashlock 及比较结果。若 Rain 已可退款而 ETH 仍可领取，B3 会提示 Bob 注意双重损失风险。
+
 若 ETH 已领取而 Rain 仍可领取，建议会提醒 Bob 在 Rain 截止时间前用事件秘密领取。无法核验秘密时会明确提示这一条件；Rain 已过期时会警告 Bob 已错过窗口。
 
 `refund` 默认目标为 `auto`，逐条检查 Rain 和 ETH，仅向已过期且仍 Active 的锁提交退款。签名者按链上 `sender` 匹配 Alice/Bob；交易前执行 `refund.staticCall`，确认后检查 `SwapRefunded` 事件及 Refunded 状态。提前、已领取、已退款或不存在的锁均不发交易。`auto` 中一条被拒仍会检查另一条。

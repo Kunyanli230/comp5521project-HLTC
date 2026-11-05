@@ -19,18 +19,24 @@ async function readStatus(chains, options, run) {
       tx.chainId === run.eth.chainId && tx.status === "confirmed");
     preimage = await findRevealedPreimage(chains.arbitrumSepolia, run.eth.swapId, lock?.blockNumber);
   }
+  let rainAmount = "0";
+  if (rain.state !== "NOT_FOUND") {
+    const token = new ethers.Contract(rain.swap.token, ["function decimals() view returns (uint8)"], chains.sepolia.provider);
+    const decimals = await token.decimals({ blockTag: rain.blockNumber });
+    rainAmount = ethers.formatUnits(rain.swap.amount, decimals);
+  }
   function side(view, key) {
     const swap = view.swap;
     return {
       network: view.network, chainId: run[key].chainId, contract: run[key].contract, swapId: run[key].swapId,
       sender: swap.sender, receiver: swap.receiver, token: swap.token, amount: swap.amount.toString(),
-      formattedAmount: key === "rain" ? ethers.formatUnits(swap.amount, 18) : ethers.formatEther(swap.amount),
+      formattedAmount: key === "rain" ? rainAmount : ethers.formatEther(swap.amount),
       timelock: Number(swap.timelock), expiresAt: view.state === "NOT_FOUND" ? null : new Date(Number(swap.timelock) * 1000).toISOString(),
       now: view.now, blockNumber: view.blockNumber, state: view.state, remaining: view.remaining, actions: view.actions,
     };
   }
   return { runId: run.runId, rain: side(rain, "rain"), eth: side(eth, "eth"),
-    preimageKnown: preimage !== null, advice: advise(rain, eth, preimage !== null) };
+    hashlock: run.hashlock, preimage, preimageKnown: preimage !== null, advice: advise(rain, eth, preimage !== null) };
 }
 
 function printStatus(status) {
@@ -50,6 +56,12 @@ function printStatus(status) {
       }
     }
     if (!side.actions.length) console.log("Actions: none");
+  }
+  if (status.preimageKnown) {
+    const digest = ethers.keccak256(status.preimage);
+    console.log(`Arbitrum SwapClaimed preimage: ${status.preimage}`);
+    console.log(`keccak256(preimage) = ${digest}\nhashlock = ${status.hashlock}`);
+    console.log(`keccak256(preimage) == hashlock: ${digest.toLowerCase() === status.hashlock.toLowerCase()}`);
   }
   console.log(`\n${status.advice.join("\n")}`);
 }

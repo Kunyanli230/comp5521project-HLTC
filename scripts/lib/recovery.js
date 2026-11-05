@@ -46,6 +46,9 @@ function advise(rainView, ethView, preimageKnown) {
   if (eth === "CLAIMED" && rain === "REFUNDABLE") {
     return ["警告：Bob 已错过 Rain 领取窗口，ETH 已被领取；Alice 可以退回 Rain，Bob 面临损失。"];
   }
+  if (rain === "REFUNDABLE" && ethActive) {
+    return ["时锁顺序异常：Alice 仍可领取 ETH，也可退回 Rain，Bob 面临两项资产都拿不到的风险。Bob 应立即核查两链；若 ETH 到期时仍未领取，立即退款。"];
+  }
   if (rainActive && ethActive) {
     return ["交换进行中：Alice 可以领取 ETH，这会公开秘密；Bob 随后须在 Rain 到期前用该事件秘密领取 Rain。"];
   }
@@ -160,7 +163,8 @@ function makeJournal(runFile, run) {
   const file = fs.realpathSync(runFile);
   const deployments = fs.realpathSync(path.join(ROOT, "deployments"));
   const relative = path.relative(deployments, file);
-  if (relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))) return () => {};
+  const outsideDeployments = path.isAbsolute(relative) || relative.split(path.sep)[0] === "..";
+  if (!outsideDeployments) return () => {};
   return (entry) => {
     const index = run.transactions.findIndex((tx) => tx.hash === entry.hash && tx.chainId === entry.chainId);
     if (index < 0) run.transactions.push({ ...entry });
