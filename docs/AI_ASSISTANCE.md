@@ -32,3 +32,18 @@
 ## Task B3 状态分类第一步（分支 `b3-b4-recovery`，2026-11-05）
 
 工具：Codex。依据 B3/B4 框架编写 `test/Recovery.js`，先运行并确认测试失败，再实现 `scripts/lib/recovery.js` 的纯函数 `classify`。覆盖状态优先级、合法操作角色、到期边界、临近到期提示和剩余秒数；未知状态抛错，不提供操作建议。本阶段代码与测试由 AI 编写，待李家榕检查；尚未实现 `advise`、双链状态读取或 B4 退款执行。
+
+## Task B3/B4 完整入口（分支 `b3-b4-recovery`，2026-11-05）
+
+工具：Codex。继续按框架编写实现与测试，以下代码由 AI 编写，待李家榕及相关模块负责人检查；不能标注为本人手写或已完成真实测试网退款演示。
+
+| 文件/函数 | AI 辅助内容 |
+|---|---|
+| `recovery.classify/advise` | 单链状态与合法操作、跨链优先建议、事件秘密未核验时的条件提示 |
+| `recovery.readSide/findRevealedPreimage` | 同区块快照、分段事件查询、RPC 范围缩减、链上 hashlock 核验，不读取本地秘密 |
+| `recovery.pickSigner/refundIfAllowed` | 按链上 sender 匹配签名者、拒绝无效操作、静态预检、确认事件与最终状态 |
+| `recovery.loadRun/makeJournal` | 部署/网络校验、按哈希与 chain ID 更新退款记录、保护部署样例不被回写 |
+| `scripts/status.js/refund.js/lockOnly.js` | B3/B4 命令入口、JSON 状态、逐链退款与退出码、演示建锁 |
+| `scripts/lib/protocol.js` | 在双方锁仓与核验后增加 `stopAfterLocks` 提前返回，默认成功交换路径不启用 |
+| `test/Recovery.js`、`test/integration/refundPath.js` | 先观察失败再实现；纯函数、RPC 限制/错误、记录保护和双本地链退款路径测试，集成 setup adapted from `crossChain.js` |
+| `package.json`、README | 增加四条运行命令及操作和验证说明，区分本地验证与公网证据 |

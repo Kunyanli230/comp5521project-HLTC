@@ -114,6 +114,12 @@ async function runSuccessfulSwap(chains, options, output = {}) {
     await verifyLock(first.htlc, rainSwapId, rainExpected);
     await verifyLock(second.htlc.connect(second.alice), ethSwapId, ethExpected);
     assertTimelocks(longDeadline, shortDeadline, await timestamp(first), await timestamp(second), options);
+    if (output.stopAfterLocks) {
+      report.status = "locked";
+      save();
+      console.log("Locked: Rain=Active, ETH=Active; no secret has been revealed.");
+      return report;
+    }
     const ethClaim = await confirmed(second,
       await second.htlc.connect(second.alice).claim(ethSwapId, preimage), "Alice claims ETH", journal);
     // Bob obtains s from the confirmed on-chain event, not Alice's local secret file.

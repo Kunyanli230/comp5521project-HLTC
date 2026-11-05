@@ -28,7 +28,7 @@ Task C：
 - 已实现：ERC20HTLC / ETHHTLC 对接基线、网络配置、部署记录、成功交换脚本、ABI、接口约定和本地测试。
 - 已验证：编译、合约规则测试，以及两个独立本地节点上的重复成功交换。
 - 已执行真实测试网部署，并于 2026-10-25 完成 100 Rain / 0.001 ETH 交换；两份合约均已部署、两笔交换状态均为 Claimed。部署记录见 `deployments/`。
-- 本次不实现前端、B3 状态查看入口或 B4 自动退款协调。两份合约已提供退款函数及状态字段供负责组员对接。
+- B3/B4 已增加独立双链状态查看、超时退款协调和只锁不领的演示入口；本地验证与公网证据分别记录。前端由 Task C 对接。
 
 ## 安装与本地验证
 
@@ -116,6 +116,59 @@ npm.cmd run swap:success
 公开运行记录位于 `runs/<runId>.json`，包含双链合约、swap ID、hashlock、金额、期限、交易哈希/链接/确认状态及最终状态。秘密文件位于 `.local/secrets/<runId>.json`，并由 Git 忽略。Windows 文件权限由账户 ACL 决定，应保留在个人目录。
 
 若中途失败，脚本退出并将运行标记为 `incomplete`。先检查记录中的 pending/confirmed 交易及链上状态；超时不代表交易没有上链。保留秘密并使用固定接口按状态继续领取，或到期后由原发送人调用 `refund(swapId)`。本次没有自动恢复或重跑续接功能；直接重跑会创建一组新 ID。
+
+## B3 / B4：状态查看、超时退款与演示准备
+
+首次运行先 `npm ci`、`npm run compile`。状态和退款入口使用 `node`，参数由 `npm run ... --` 传入。以下命令在仓库根目录执行，`<runId>` 替换为运行记录 ID，也可使用 JSON 文件路径。
+
+```sh
+npm run status -- <runId>
+npm run status -- <runId> --json
+npm run refund -- <runId> eth
+npm run refund -- <runId> rain
+npm run refund -- <runId> auto
+```
+
+`status` 分别读取两条链，同一条链的锁和时间固定在同一个最新区块；输出状态、双方地址、金额、截止时间、剩余秒数和当前合约允许的操作。领取仍需正确秘密。它只从 Arbitrum 的 `SwapClaimed` 事件核验公开秘密，不读取 `.local/secrets/`、不发交易、不写记录。`--json` 输出可供 Task C 使用的 JSON；如需直接交给 JSON 解析器，使用 `node scripts/status.js <runId> --json`，避免 npm 的命令提示行。
+
+| 状态 | 合约允许的操作 |
+|---|---|
+| `NOT_FOUND` | 无 |
+| `CLAIMABLE` | receiver 在到期前用正确秘密领取 |
+| `CLOSING` | 同上，但剩余时间小于 `MIN_CLAIM_WINDOW_SECONDS` |
+| `REFUNDABLE` | sender 退款；`区块时间 == timelock` 即进入此状态 |
+| `CLAIMED` / `REFUNDED` | 无，不再提供领取或退款操作 |
+
+若 ETH 已领取而 Rain 仍可领取，建议会提醒 Bob 在 Rain 截止时间前用事件秘密领取。无法核验秘密时会明确提示这一条件；Rain 已过期时会警告 Bob 已错过窗口。
+
+`refund` 默认目标为 `auto`，逐条检查 Rain 和 ETH，仅向已过期且仍 Active 的锁提交退款。签名者按链上 `sender` 匹配 Alice/Bob；交易前执行 `refund.staticCall`，确认后检查 `SwapRefunded` 事件及 Refunded 状态。提前、已领取、已退款或不存在的锁均不发交易。`auto` 中一条被拒仍会检查另一条。
+
+- 退出码 `0`：请求的退款均成功；`2`：至少一条被正确拒绝，可能已有另一条成功；`1`：配置、RPC 或交易错误。
+- 运行记录必须与当前两条链的部署地址、chain ID 和网络一致。
+- 退款按交易哈希和 chain ID 更新 `runs/<runId>.json`，确认后写入 `recovery.rain/eth = "Refunded"`。`deployments/` 中的已提交样例始终只读。
+
+准备一笔“两边只锁不领”的新实例：
+
+```sh
+npm run lock:only
+# macOS / Linux：缩短期限，供退款演示使用
+ETH_TIMELOCK_SECONDS=240 RAIN_TIMELOCK_SECONDS=480 MIN_TIMELOCK_GAP_SECONDS=120 MIN_CLAIM_WINDOW_SECONDS=60 npm run lock:only
+```
+
+`lockOnly` 复用 B2 的建锁及核验流程，通过 `stopAfterLocks` 在领取前保存 `status: "locked"` 并结束。此命令会实际锁定配置的 Rain/ETH 并消耗测试网 gas；需要双方余额充足。普通成功交换入口默认不启用该选项。
+
+答辩前分别准备一笔已过期实例 P 和一笔尚未过期实例 Q：先展示 Q 的 `status` 和被拒绝的提前退款，再用 P 展示到期退款及最终 `REFUNDED` 状态。每次 `lockOnly` 都创建新实例，不能靠重跑恢复原实例。
+
+验证命令：
+
+```sh
+npm test
+npm run test:refund-path
+npm run test:cross-chain
+npm run status -- deployments/successful-swap-2026-10-25.json
+```
+
+`test:refund-path` 自动启停两条本地链，覆盖只锁不领、到期边界、提前/重复/已领取拒绝、旧快照的预检拒绝、正确 sender、事件秘密和恢复记录。本地测试资料保存在被 Git 忽略的 `.local/refund-test-*/`，只代表本地链验证。B4 真实测试网锁仓及退款演示尚需另行执行并记录真实交易链接。
 
 ## Task A / C 对接
 
