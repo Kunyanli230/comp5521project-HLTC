@@ -28,3 +28,7 @@
 | `docs/TASK_A_EXPLAIN.md` | 起草函数说明文档 |
 
 `contracts/test/` 下合约仅用于本地测试，不会被部署。源码中不逐个标注，以本文件为准。
+
+## Task B3 状态分类第一步（分支 `b3-b4-recovery`，2026-11-05）
+
+工具：Codex。依据 B3/B4 框架编写 `test/Recovery.js`，先运行并确认测试失败，再实现 `scripts/lib/recovery.js` 的纯函数 `classify`。覆盖状态优先级、合法操作角色、到期边界、临近到期提示和剩余秒数；未知状态抛错，不提供操作建议。本阶段代码与测试由 AI 编写，待李家榕检查；尚未实现 `advise`、双链状态读取或 B4 退款执行。
