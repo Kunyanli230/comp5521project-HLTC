@@ -9,6 +9,10 @@
     "config:check": "node scripts/checkConfig.js",
     "deploy": "hardhat run scripts/deploy.js",
     "swap:success": "hardhat run scripts/successfulSwap.js",
+    "status": "node scripts/status.js",
+    "refund": "node scripts/refund.js",
+    "lock:only": "node scripts/lockOnly.js",
+    "test:refund-path": "hardhat compile && node test/integration/refundPath.js",
     "abi:export": "hardhat run scripts/exportAbi.js",
     "test:cross-chain": "hardhat compile && node test/integration/crossChain.js"
   },

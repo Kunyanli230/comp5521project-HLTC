@@ -28,3 +28,18 @@
 | `docs/TASK_A_EXPLAIN.md` | 起草函数说明文档 |
 
 `contracts/test/` 下合约仅用于本地测试，不会被部署。源码中不逐个标注，以本文件为准。
+
+## Task B3/B4 完整入口（分支 `b3-b4-recovery`，2026-11-05）
+
+下表记录本阶段的实现与测试范围。真实测试网退款演示仍待完成。
+
+| 文件/函数 | AI 辅助内容 |
+|---|---|
+| `recovery.classify/advise` | 状态优先级、合法操作角色、到期边界与临近到期提示、跨链时锁异常风险及公开秘密核验 |
+| `recovery.readSide/findRevealedPreimage` | 同区块快照、分段事件查询、RPC 范围缩减、链上 hashlock 核验，不读取本地秘密 |
+| `recovery.pickSigner/refundIfAllowed` | 按链上 sender 匹配签名者、拒绝无效操作、静态预检、确认事件与最终状态 |
+| `recovery.loadRun/makeJournal` | 部署/网络校验、按哈希与 chain ID 更新退款记录、保护部署样例不被回写 |
+| `scripts/status.js/refund.js/lockOnly.js` | B3/B4 命令入口、JSON 状态、逐链退款与退出码、演示建锁 |
+| `scripts/lib/protocol.js` | 在双方锁仓与核验后增加 `stopAfterLocks` 提前返回，默认成功交换路径不启用 |
+| `test/Recovery.js`、`test/integration/refundPath.js` | 先观察失败再实现；纯函数、RPC 限制/错误、记录保护和双本地链退款路径测试，集成 setup adapted from `crossChain.js` |
+| `package.json`、README | 增加四条运行命令及操作和验证说明，区分本地验证与公网证据 |
