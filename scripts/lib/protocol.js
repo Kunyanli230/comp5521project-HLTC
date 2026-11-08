@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { ethers } = require("ethers");
 const { ROOT, writeJson, assertChain, assertCode, confirmed, eventFrom, errorMessage } = require("./runtime");
+const { readConfirmedClaim } = require("./recovery");
 const TOKEN_ABI = [
   "function decimals() view returns(uint8)", "function balanceOf(address) view returns(uint256)",
   "function allowance(address,address) view returns(uint256)", "function approve(address,uint256) returns(bool)",
@@ -27,6 +28,16 @@ async function verifyLock(contract, id, expected) {
   if (swap.status !== 1n) throw new Error("Counterparty lock is not active");
   return swap;
 }
+function lockCall(swapId, expected) {
+  const eth = expected.token.toLowerCase() === ethers.ZeroAddress;
+  return {
+    method: eth ? "createETHSwap" : "createERC20Swap",
+    args: eth
+      ? [swapId, expected.receiver, expected.hashlock, expected.timelock]
+      : [swapId, expected.receiver, expected.token, expected.amount, expected.hashlock, expected.timelock],
+    value: eth ? expected.amount : 0n
+  };
+}
 function verifyCreated(receipt, contract, id, expected) {
   const event = eventFrom(receipt, contract, "SwapCreated", id);
   for (const [key, value] of Object.entries(expected)) {
@@ -34,6 +45,7 @@ function verifyCreated(receipt, contract, id, expected) {
   }
 }
 async function runSuccessfulSwap(chains, options, output = {}) {
+  const { expectedLock } = await import("../../shared/swapInputs.mjs");
   const first = chains.sepolia;
   const second = chains.arbitrumSepolia;
   if (first.chainId === second.chainId) throw new Error("The swap requires two different chain IDs");
@@ -66,6 +78,7 @@ async function runSuccessfulSwap(chains, options, output = {}) {
   const runId = ethers.hexlify(ethers.randomBytes(16)).slice(2);
   const rainSwapId = ethers.hexlify(ethers.randomBytes(32));
   const ethSwapId = ethers.hexlify(ethers.randomBytes(32));
+  const terms = { alice, bob, rainToken: options.rainAddress, rainAmount, ethAmount, hashlock };
   const reportFile = path.join(output.runDir || path.join(ROOT, "runs"), `${runId}.json`);
   const secretDir = output.secretDir || path.join(ROOT, ".local/secrets");
   fs.mkdirSync(secretDir, { recursive: true });
@@ -94,21 +107,23 @@ async function runSuccessfulSwap(chains, options, output = {}) {
     const longDeadline = await timestamp(first) + options.rainSeconds;
     const initialShort = await timestamp(second) + options.ethSeconds;
     assertTimelocks(longDeadline, initialShort, await timestamp(first), await timestamp(second), options);
-    const rainExpected = { sender: alice, receiver: bob, token: options.rainAddress, amount: rainAmount, hashlock, timelock: longDeadline };
+    const rainExpected = expectedLock(terms, "rain", longDeadline);
+    const rainCall = lockCall(rainSwapId, rainExpected);
     report.rain.timelock = longDeadline;
     save();
     const rainReceipt = await confirmed(first,
-      await first.htlc.connect(first.alice).createERC20Swap(rainSwapId, bob, options.rainAddress, rainAmount, hashlock, longDeadline), "Lock Rain", journal);
+      await first.htlc.connect(first.alice)[rainCall.method](...rainCall.args), "Lock Rain", journal);
     verifyCreated(rainReceipt, first.htlc, rainSwapId, rainExpected);
     // Bob independently reads the first chain before committing his ETH.
     await verifyLock(first.htlc.connect(first.bob), rainSwapId, rainExpected);
     const shortDeadline = await timestamp(second) + options.ethSeconds;
     assertTimelocks(longDeadline, shortDeadline, await timestamp(first), await timestamp(second), options);
-    const ethExpected = { sender: bob, receiver: alice, token: ethers.ZeroAddress, amount: ethAmount, hashlock, timelock: shortDeadline };
+    const ethExpected = expectedLock(terms, "eth", shortDeadline);
+    const ethCall = lockCall(ethSwapId, ethExpected);
     report.eth.timelock = shortDeadline;
     save();
     const ethReceipt = await confirmed(second,
-      await second.htlc.connect(second.bob).createETHSwap(ethSwapId, alice, hashlock, shortDeadline, { value: ethAmount }), "Lock ETH", journal);
+      await second.htlc.connect(second.bob)[ethCall.method](...ethCall.args, { value: ethCall.value }), "Lock ETH", journal);
     verifyCreated(ethReceipt, second.htlc, ethSwapId, ethExpected);
     // Alice verifies both active locks before publishing her secret.
     await verifyLock(first.htlc, rainSwapId, rainExpected);
@@ -123,9 +138,9 @@ async function runSuccessfulSwap(chains, options, output = {}) {
     const ethClaim = await confirmed(second,
       await second.htlc.connect(second.alice).claim(ethSwapId, preimage), "Alice claims ETH", journal);
     // Bob obtains s from the confirmed on-chain event, not Alice's local secret file.
-    const observed = await second.provider.getTransactionReceipt(ethClaim.hash);
-    if (!observed || observed.status !== 1 || observed.blockHash !== ethClaim.blockHash) throw new Error("ETH claim receipt changed; inspect chain state before proceeding");
-    const revealed = eventFrom(observed, second.htlc, "SwapClaimed", ethSwapId).preimage;
+    const observed = await readConfirmedClaim(second, ethSwapId, ethClaim.hash);
+    if (observed.blockHash !== ethClaim.blockHash) throw new Error("ETH claim receipt changed; inspect chain state before proceeding");
+    const revealed = observed.preimage;
     if (ethers.keccak256(revealed) !== hashlock) throw new Error("Revealed preimage does not match the agreed hashlock");
     if ((await second.htlc.swaps(ethSwapId)).status !== 2n) throw new Error("ETH claim state was not confirmed");
     await verifyLock(first.htlc, rainSwapId, rainExpected);
@@ -151,4 +166,4 @@ async function runSuccessfulSwap(chains, options, output = {}) {
     throw new Error(report.error);
   }
 }
-module.exports = { runSuccessfulSwap, verifyLock, assertTimelocks };
+module.exports = { runSuccessfulSwap, verifyLock, verifyCreated, assertTimelocks, lockCall };

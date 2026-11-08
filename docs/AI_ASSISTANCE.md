@@ -1,5 +1,9 @@
 # AI 辅助记录
 
+2026-11-08，按用户要求仅整理文档：将当前手动输入/点击/预期结果集中为 `docs/TASK_C_FLOW.md`，将 Task C 实现、PDF 对应与 A/B HTTP 接口说明集中为 `docs/TASK_C.md`；旧笔记和验收表保留在 `docs/TEST_RESULTS.md` 的折叠历史区，删除三个重复入口并同步 README/接口引用。本轮未修改运行代码、执行新链上操作或把未验收场景写为通过。
+
+2026-11-07，按用户确认的函数级调试方案修正部署检查：在 `runtime.js` 新增 `splitSolidityMetadata`、`compareBytecode`，调整 `assertCode` 以完整解码 CBOR、区分完整一致/仅元数据哈希不同/不兼容；CLI 和 HTTP 共用该判断。调整 `configuredCoordinator`、快照、health 及前端 `render`，分别传递和显示 `deploymentWarnings`、`deploymentIssues`。使用现有依赖树中的 `cbor@8.1.0` 并声明为直接依赖。保留所有交易前置校验与 MetaMask 签名，不改 Solidity、ABI 或部署记录。新增部署检查边界测试，并扩展原本地 HTTP 集成检查，在本地改变元数据哈希后验证完整成功/退款流程；测试替身不作为公网 MetaMask 验收。
+
 本次用户指定范围：双网络部署配置、成功交换协调、固定 Task A/C 对接接口，以及 Rain 命名。此文件用于保留实际辅助范围，供组员审查代码、解释函数并在报告中如实引用。
 
 | 文件/函数 | 辅助内容 |
@@ -43,3 +47,18 @@
 | `scripts/lib/protocol.js` | 在双方锁仓与核验后增加 `stopAfterLocks` 提前返回，默认成功交换路径不启用 |
 | `test/Recovery.js`、`test/integration/refundPath.js` | 先观察失败再实现；纯函数、RPC 限制/错误、记录保护和双本地链退款路径测试，集成 setup adapted from `crossChain.js` |
 | `package.json`、README | 增加四条运行命令及操作和验证说明，区分本地验证与公网证据 |
+
+## Task C（2026-11-08）
+
+AI 在 `index.html/style.css` 添加统一原生结果弹窗。成功由后端核验返回触发，说明角色、数量和下一步；取消及核验未完成使用警告，保留公开链接与未决保护。
+
+AI 在 `index.html`、`guide.js`、`style.css` 添加各视图共用的双链状态栏，使用既有快照展示状态、区块及查询中说明；不改变 B 或交易判断。同步 FLOW 的查看位置。实际 guide 开发检查及构建通过，尚待用户视觉验收。
+
+AI 辅助实现 `frontend/lib/guide.js` 的 `attachStepGuide/recommended/showRoute/render/refundMessage` 界面函数，展示账户、网络、下一步和公开链上状态。
+- `workflow.js` 在已有状态判断及创建新草稿后同步步骤引导；沿用原有交易准备、钱包签名和链上核验流程。文档同步记录新导航。
+
+AI 调整 C 的 `readLockSnapshot/readPairSnapshot/findSwapEvent/assertTimeWindows/assessTimelocks/recoveryView/workflowState` 及退款、查询与引导调用，删除相应重复实现。
+
+AI 辅助编写 `style.css`，并修改 `guide.showRoute/render` 的页面标题、账户预览、网络选中态、提示颜色及导航进度展示，添加键盘跳转入口。
+
+

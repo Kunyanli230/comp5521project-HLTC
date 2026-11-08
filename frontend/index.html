@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rain / ETH Swap</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <a id="skip-to-step" class="skip-link" href="#main-content">Skip to current step</a>
+    <div class="app-shell">
+    <header class="site-header">
+      <div class="project-heading">
+        <p class="project-kicker">COMP5521 · GROUP 04</p>
+        <h1>Rain <span class="title-divider">/</span> ETH</h1>
+        <p class="project-subtitle">A guided cross-chain exchange <span class="testnet-badge">TESTNET</span></p>
+      </div>
+      <nav class="page-nav" aria-label="Main navigation">
+        <a href="#/prepare" data-nav="swap"><span>01</span> Guided swap</a>
+        <a href="#/inspect" data-nav="inspect"><span>02</span> Inspect locks</a>
+        <a href="#/refund" data-nav="refund"><span>03</span> Refunds</a>
+      </nav>
+    </header>
+
+    <div class="workspace">
+    <div class="context-column">
+    <aside class="wallet-bar panel" aria-label="Wallet">
+      <div class="panel-heading"><p class="eyebrow">YOUR WALLET</p><span id="wallet-connection-label" class="connection-label">Not connected</span></div>
+      <p><strong id="wallet-identity">Wallet not connected</strong></p>
+      <p id="wallet-address-preview" class="wallet-address-preview">No account selected</p>
+      <div class="button-row wallet-actions">
+        <button id="connect-button" type="button">Connect Wallet</button>
+        <button id="sepolia-button" type="button" class="secondary">Switch to Ethereum Sepolia</button>
+        <button id="arbitrum-button" type="button" class="secondary">Switch to Arbitrum Sepolia</button>
+      </div>
+      <p id="wallet-guidance">Connect the account needed for the selected step.</p>
+      <details class="wallet-details">
+        <summary>Account and balances</summary>
+        <p class="wallet-account">Account<span id="account">Not connected</span></p>
+        <p class="wallet-metric">Chain ID<span id="chain-id">Unknown</span></p>
+        <p class="wallet-metric">ETH · current network<span id="eth-balance">—</span></p>
+        <p class="wallet-metric">Rain · Ethereum Sepolia<span id="rain-balance">—</span></p>
+        <p class="wallet-metric">Rain allowance<span id="rain-allowance">—</span></p>
+      </details>
+      <p id="status" role="status">Connect your wallet to get started.</p>
+    </aside>
+
+    <section id="workflow-guide" class="progress-panel panel" aria-label="Exchange progress">
+      <div class="progress-heading">
+        <div>
+          <p class="eyebrow">EXCHANGE OVERVIEW</p>
+          <p id="exchange-summary">Prepare the exchange or load an existing setup.</p>
+        </div>
+        <button id="read-both-locks-button" type="button" class="secondary">Read Both Locks</button>
+      </div>
+      <p id="workflow-status" class="notice" role="status">Set up the exchange</p>
+      <p id="workflow-details">Alice prepares a private backup. Bob can import the public setup.</p>
+      <button id="guide-resume" type="button">Go to the recommended step</button>
+      <p id="workflow-refresh-status" class="panel-footnote" role="status">Recommendations follow the latest completed chain read.</p>
+      <p id="workflow-action-status" role="status">No new swap action submitted.</p>
+      <a id="workflow-action-link" target="_blank" rel="noopener noreferrer" hidden>View action transaction</a>
+    </section>
+
+    <aside class="share-tools panel">
+      <p class="eyebrow">CONTINUE ON ANOTHER DEVICE</p>
+      <button id="export-public-button" type="button" class="secondary">Export Public Setup</button>
+      <span>Share this public file with Bob. Alice keeps the private backup.</span>
+    </aside>
+    </div>
+    <div class="work-column">
+    <nav id="step-navigation" aria-label="Swap steps">
+      <ol class="workflow-steps">
+        <li><a href="#/prepare"><span class="step-number">01</span><span class="step-name">Prepare</span></a></li>
+        <li><a href="#/lock-rain"><span class="step-number">02</span><span class="step-name">Lock Rain</span></a></li>
+        <li><a href="#/lock-eth"><span class="step-number">03</span><span class="step-name">Lock ETH</span></a></li>
+        <li><a href="#/claim-eth"><span class="step-number">04</span><span class="step-name">Claim ETH</span></a></li>
+        <li><a href="#/claim-rain"><span class="step-number">05</span><span class="step-name">Claim Rain</span></a></li>
+        <li><a href="#/complete"><span class="step-number">06</span><span class="step-name">Result</span></a></li>
+      </ol>
+    </nav>
+
+    <main id="main-content">
+      <div class="page-kicker"><span id="page-step">STEP 01 / 06</span><span id="page-mode">GUIDED SWAP</span></div>
+      <section class="lock-status-strip" aria-label="Current on-chain lock states">
+        <p class="eyebrow">CURRENT ON-CHAIN STATE</p>
+        <dl class="lock-status-values">
+          <div><dt>Rain · Ethereum Sepolia</dt><dd id="current-rain-state">Not checked</dd></div>
+          <div><dt>ETH · Arbitrum Sepolia</dt><dd id="current-eth-state">Not checked</dd></div>
+        </dl>
+        <p id="current-locks-read-status">Click Read Both Locks to check both networks.</p>
+        <a href="#/inspect">View lock IDs and details</a>
+      </section>
+      <article data-view="prepare" aria-labelledby="prepare-title">
+        <h2 id="prepare-title" tabindex="-1">Prepare your exchange</h2>
+        <p class="page-description">Agree on the exchange, then secure Alice's secret before either asset is locked.</p>
+        <div class="exchange-direction" aria-label="Exchange direction">
+          <div><span class="asset-symbol" aria-hidden="true">R</span><p><strong>Alice sends Rain</strong><span>Ethereum Sepolia · MST</span></p></div>
+          <span class="exchange-arrow" aria-hidden="true">↔</span>
+          <div><span class="asset-symbol eth-symbol" aria-hidden="true">E</span><p><strong>Bob sends ETH</strong><span>Arbitrum Sepolia · native ETH</span></p></div>
+        </div>
+
+        <section id="swap-setup-section" class="form-card">
+          <div class="section-heading"><span class="section-number">01</span><div><p class="eyebrow">START OR RESUME</p><h3>Set up this exchange</h3></div></div>
+          <div class="setup-options">
+            <div class="setup-option">
+              <h4>Start a new exchange</h4>
+              <p>Alice generates the secret and two unique swap IDs. Download the backup, then select it below to verify it.</p>
+              <div class="button-stack">
+                <button id="generate-swap-button" type="button">Generate Swap IDs and Hashlock</button>
+                <button id="backup-secret-button" type="button" class="secondary" disabled>Download Private Backup</button>
+              </div>
+            </div>
+            <div class="setup-option public-option">
+              <h4>Resume with public settings</h4>
+              <p>Bob imports the public setup shared by Alice. It contains the agreement and IDs, without the private secret.</p>
+              <label for="public-setup-input">Import Public Setup</label>
+              <input id="public-setup-input" type="file" accept=".json,application/json" />
+              <p id="public-setup-status" class="subtle-status" role="status">Only the current public setup is saved locally. Private secrets are not.</p>
+            </div>
+          </div>
+          <div id="public-setup-summary" hidden>
+            <h4>Current public setup</h4>
+            <p class="subtle-status">These are the current agreement and IDs. Use Read Both Locks to verify the on-chain records.</p>
+            <dl id="public-setup-fields" class="record-summary"></dl>
+          </div>
+          <div class="backup-verification">
+            <div class="backup-heading"><h4>Alice: verify or restore your backup</h4><span class="private-label">PRIVATE · ALICE ONLY</span></div>
+            <p>Only Alice needs this file. For a new exchange, select the backup you just downloaded. To resume, select the matching backup you saved earlier. Bob can continue using the public setup above.</p>
+            <label class="sr-only" for="secret-backup-input">Alice: restore or verify a private backup</label>
+            <input id="secret-backup-input" type="file" accept=".json,application/json" />
+            <p id="swap-setup-status" class="feedback" role="status">No private backup loaded.</p>
+          </div>
+          <details id="private-draft-details" class="technical-details" hidden>
+            <summary>View draft IDs and hashlock</summary>
+            <p>Hashlock: <code id="swap-hashlock">Not generated</code></p>
+            <p>Rain swap ID: <code id="rain-swap-id">Not generated</code></p>
+            <p>ETH swap ID: <code id="eth-swap-id">Not generated</code></p>
+            <button id="use-draft-button" type="button" class="secondary">Use This Draft</button>
+          </details>
+        </section>
+
+        <section id="swap-terms-section">
+          <div class="section-heading"><span class="section-number">02</span><div><p class="eyebrow">THE AGREEMENT</p><h3>Who sends what?</h3></div></div>
+          <p><label for="terms-alice">Alice address — sends Rain, receives ETH</label><input id="terms-alice" type="text" /></p>
+          <p><label for="terms-bob">Bob address — sends ETH, receives Rain</label><input id="terms-bob" type="text" /></p>
+          <div class="field-row">
+            <p><label for="terms-rain-amount">Rain amount (MST)</label><input id="terms-rain-amount" type="text" inputmode="decimal" value="100" /></p>
+            <p><label for="terms-eth-amount">ETH amount — excludes fees</label><input id="terms-eth-amount" type="text" inputmode="decimal" value="0.001" /></p>
+          </div>
+          <button id="check-terms-button" type="button" class="secondary">Check Swap Terms</button>
+          <pre id="swap-terms-result" role="status">Terms not checked.</pre>
+        </section>
+
+        <section id="timelock-settings-section">
+          <div class="section-heading"><span class="section-number">03</span><div><p class="eyebrow">TIME TO COMPLETE</p><h3>Give both sides enough time</h3></div></div>
+          <p>Rain stays locked longer so Bob has time to claim it after Alice claims ETH. The defaults allow two hours for Rain and one hour for ETH.</p>
+          <div class="field-row">
+            <p><label for="rain-lock-seconds">Rain duration (seconds)</label><input id="rain-lock-seconds" type="text" inputmode="numeric" value="7200" /></p>
+            <p><label for="eth-lock-seconds">ETH duration (seconds)</label><input id="eth-lock-seconds" type="text" inputmode="numeric" value="3600" /></p>
+          </div>
+          <button id="check-timelocks-button" type="button" class="secondary">Check Timelock Settings</button>
+          <pre id="timelock-settings-result" role="status">Settings not checked.</pre>
+        </section>
+        <p class="instruction">Ready? Verify Alice's backup, check the terms, then click <strong>Read Both Locks</strong>. Use the recommended step to continue.</p>
+      </article>
+
+      <article data-view="lock-rain" aria-labelledby="lock-rain-title" hidden>
+        <h2 id="lock-rain-title" tabindex="-1">Lock Rain on Sepolia</h2>
+        <p class="step-requirement">Account: <strong>Alice</strong> · Network: <strong>Ethereum Sepolia</strong></p>
+        <p>Alice's Rain will enter the HTLC contract for Bob to claim. Alice needs Rain and Sepolia ETH for fees.</p>
+        <p id="rain-step-state" class="instruction">Read both locks to check this step.</p>
+        <section>
+          <h3>A. Allow the HTLC to transfer Rain</h3>
+          <p>Approval sets a spending allowance; it does not lock or send Rain. If the allowance already covers the agreed amount, continue to B.</p>
+          <p id="rain-funding-summary">Connect Alice on Ethereum Sepolia to read her balance and allowance.</p>
+          <label for="approve-amount">Rain amount to approve</label>
+          <input id="approve-amount" type="text" inputmode="decimal" value="100" />
+          <button id="approve-button" type="button">Approve Rain</button>
+          <p id="approval-status" role="status">No approval transaction submitted.</p>
+          <a id="approval-tx-link" target="_blank" rel="noopener noreferrer" hidden>View approval transaction</a>
+        </section>
+        <section id="rain-actions-section">
+          <h3>B. Check and lock the agreed Rain</h3>
+          <p>The matching private backup must be verified in <a href="#/prepare">Prepare</a>. The lock button rechecks the account, balance, allowance and deadline before opening MetaMask.</p>
+          <p id="rain-preflight-result">Task B checks balances, allowance, deadlines and fees when you click Lock Rain.</p>
+          <button id="lock-rain-button" type="button" disabled>Lock Rain</button>
+          <p id="rain-lock-tx-status" role="status">No Rain lock transaction submitted.</p>
+          <a id="rain-lock-tx-link" target="_blank" rel="noopener noreferrer" hidden>View Rain lock transaction</a>
+          <p>Confirm in MetaMask, then wait for the creation result. Once Rain is locked, share the public setup with Bob and continue to step 3.</p>
+        </section>
+      </article>
+
+      <article data-view="lock-eth" aria-labelledby="lock-eth-title" hidden>
+        <h2 id="lock-eth-title" tabindex="-1">Lock ETH on Arbitrum</h2>
+        <p class="step-requirement">Account: <strong>Bob</strong> · Network: <strong>Arbitrum Sepolia</strong></p>
+        <p>Bob imports Alice's public setup in <a href="#/prepare">Prepare</a>, then checks that the Rain lock matches the agreed participants, amount, token and hashlock.</p>
+        <section id="eth-actions-section">
+          <h3>Check the counterparty lock</h3>
+          <p id="eth-lock-step-state" class="instruction">Read both locks to check this step.</p>
+          <dl id="counterparty-summary" class="record-summary"><dt>Rain lock</dt><dd>Not checked.</dd></dl>
+          <p>The app independently checks Rain before requesting this transaction. Bob needs the agreed ETH amount plus gas on Arbitrum Sepolia.</p>
+          <button id="lock-eth-button" type="button" disabled>Lock ETH (Bob)</button>
+          <p>Review the ETH amount in MetaMask and confirm. Wait for the verified result above, then continue to step 4.</p>
+        </section>
+      </article>
+
+      <article data-view="claim-eth" aria-labelledby="claim-eth-title" hidden>
+        <h2 id="claim-eth-title" tabindex="-1">Claim the locked ETH</h2>
+        <p class="step-requirement">Account: <strong>Alice</strong> · Network: <strong>Arbitrum Sepolia</strong></p>
+        <section>
+          <h3>Verify both locks before revealing the secret</h3>
+          <p id="eth-claim-step-state" class="instruction">Read both locks to check this step.</p>
+          <p>Both locks must match the agreement and have enough time remaining. Alice uses her private backup to unlock Bob's ETH.</p>
+          <p id="claim-backup-guidance">Restore and verify Alice's matching backup in Prepare.</p>
+          <p><a href="#/prepare">Restore or verify Alice's private backup</a></p>
+          <p><strong>Claiming ETH reveals the secret on-chain.</strong> Bob can then read it from the confirmed event and claim Rain.</p>
+          <button id="claim-eth-button" type="button" disabled>Claim ETH (Alice)</button>
+          <p>Confirm in MetaMask and wait for the verified result. The public ETH claim transaction hash will be filled in for step 5.</p>
+        </section>
+      </article>
+
+      <article data-view="claim-rain" aria-labelledby="claim-rain-title" hidden>
+        <h2 id="claim-rain-title" tabindex="-1">Claim Rain from the revealed secret</h2>
+        <p class="step-requirement">Account: <strong>Bob</strong> · Network: <strong>Ethereum Sepolia</strong></p>
+        <section id="rain-claim-section">
+          <h3>Use Alice's confirmed ETH claim</h3>
+          <p id="rain-claim-step-state" class="instruction">Read both locks to check this step.</p>
+          <label for="eth-claim-tx-hash">Public ETH claim transaction hash</label>
+          <input id="eth-claim-tx-hash" type="text" placeholder="0x... transaction hash" />
+          <p>This is filled automatically in the same browser. In another browser, paste Alice's ETH claim transaction hash or import her updated public setup.</p>
+          <p>The app checks the confirmed event and reads the secret from it. Bob does not need Alice's private backup.</p>
+          <button id="claim-rain-button" type="button" disabled>Claim Rain from ETH Event</button>
+          <p>Confirm in MetaMask and wait for the result. When both locks are Claimed, the exchange is complete.</p>
+        </section>
+      </article>
+
+      <article data-view="complete" aria-labelledby="complete-title" hidden>
+        <h2 id="complete-title" tabindex="-1">Your exchange result</h2>
+        <section>
+          <p id="completion-status" class="notice">Read both locks to check whether this exchange has finished.</p>
+          <dl id="completion-summary" class="record-summary"></dl>
+          <p>Save the public setup and copy the transaction links shown after each operation. This app does not keep transaction history.</p>
+          <p><a href="#/inspect">Inspect the on-chain records</a></p>
+          <button id="new-swap-button" type="button" class="secondary">Start New Swap</button>
+          <p>After a successful exchange, Bob owns the Rain. Fund Alice again and check allowance before another run.</p>
+        </section>
+      </article>
+
+      <article data-view="inspect" aria-labelledby="inspect-title" hidden>
+        <h2 id="inspect-title" tabindex="-1">Inspect the on-chain locks</h2>
+        <p>Enter both swap IDs, then click Read Both Locks above. These read-only queries work without switching MetaMask. Agreed hashlocks and terms are needed for parameter verification, not for reading the records.</p>
+        <section>
+          <h3>Rain · Ethereum Sepolia</h3>
+          <p><label for="rain-swap-query">Rain swap ID to look up</label><input id="rain-swap-query" type="text" placeholder="0x..." /></p>
+          <p><label for="expected-rain-hashlock">Agreed Rain hashlock</label><input id="expected-rain-hashlock" type="text" placeholder="0x..." /></p>
+          <p>On-chain state: <span id="rain-lock-state">Not checked</span></p>
+          <p>Parameter check: <span id="rain-parameter-check">Not checked</span></p>
+          <details><summary>State and deadline assessment</summary><pre id="rain-lock-assessment">Not checked</pre></details>
+          <details><summary>Recorded Rain fields</summary><pre id="rain-lock-details"></pre></details>
+        </section>
+        <section>
+          <h3>ETH · Arbitrum Sepolia</h3>
+          <p><label for="eth-swap-query">ETH swap ID to look up</label><input id="eth-swap-query" type="text" placeholder="0x..." /></p>
+          <p><label for="expected-eth-hashlock">Agreed ETH hashlock</label><input id="expected-eth-hashlock" type="text" placeholder="0x..." /></p>
+          <p>On-chain state: <span id="eth-lock-state">Not checked</span></p>
+          <p>Parameter check: <span id="eth-parameter-check">Not checked</span></p>
+          <details><summary>Recorded ETH fields and deadline assessment</summary><pre id="eth-lock-report"></pre></details>
+        </section>
+        <section>
+          <h3>Cross-chain snapshot</h3>
+          <p>Use <strong>Read Both Locks</strong> above to query both networks without switching MetaMask.</p>
+          <p>Cross-chain parameter check:</p><pre id="pair-parameter-check">Not checked.</pre>
+          <p>Active-pair state and deadline check:</p><pre id="pair-timelock-check">Not checked.</pre>
+          <details><summary>Snapshot blocks, chain times and recorded deadlines</summary><pre id="cross-chain-report">Not checked.</pre></details>
+        </section>
+        <details><summary>Configured networks and contracts</summary><pre id="deployment-info"></pre></details>
+      </article>
+
+      <article data-view="refund" aria-labelledby="refund-title" hidden>
+        <h2 id="refund-title" tabindex="-1">Refund an expired lock</h2>
+        <p>Load the existing setup in <a href="#/prepare">Prepare</a>, then read both locks. Expiry does not automatically refund assets. Each original sender claims their own refund on the corresponding network.</p>
+        <section id="refund-section">
+          <h3>Alice's Rain refund · Ethereum Sepolia</h3>
+          <p id="refund-rain-guidance">Read both locks to see the Rain deadline and refund eligibility.</p>
+          <button id="refund-rain-button" type="button" disabled>Refund Expired Rain</button>
+          <h3>Bob's ETH refund · Arbitrum Sepolia</h3>
+          <p id="refund-eth-guidance">Read both locks to see the ETH deadline and refund eligibility.</p>
+          <button id="refund-eth-button" type="button" disabled>Refund Expired ETH</button>
+          <p>Only expired Active locks can be refunded. A Claimed or Refunded lock cannot be refunded again. Rain usually expires later than ETH.</p>
+          <p id="refund-status" role="status">No refund transaction submitted.</p>
+          <a id="refund-tx-link" target="_blank" rel="noopener noreferrer" hidden>View refund transaction</a>
+        </section>
+      </article>
+
+      <footer id="step-footer" class="step-footer">
+        <button id="guide-back" type="button" class="secondary">Previous step</button>
+        <button id="guide-next" type="button" disabled>Continue after checking this step</button>
+        <p id="guide-next-hint">Read both locks to find the next step.</p>
+      </footer>
+    </main>
+
+    </div>
+    </div>
+    <footer class="site-footer"><span>COMP5521 · Group 04 · HTLC cross-chain swap</span><span>Ethereum Sepolia <span aria-hidden="true">↔</span> Arbitrum Sepolia</span></footer>
+    </div>
+    <dialog id="action-result-dialog" class="action-result-dialog" aria-labelledby="action-result-title" aria-describedby="action-result-description action-result-next">
+      <p id="action-result-label" class="eyebrow">TRANSACTION RESULT</p>
+      <h2 id="action-result-title">Transaction result</h2>
+      <p id="action-result-description"></p>
+      <p id="action-result-next" class="instruction"></p>
+      <a id="action-result-link" target="_blank" rel="noopener noreferrer" hidden>View this transaction</a>
+      <div class="result-dialog-actions"><button id="action-result-close" type="button" autofocus>Got it</button></div>
+    </dialog>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

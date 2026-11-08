@@ -8,7 +8,7 @@ Task A:
 
 李佳阳：
 
-Task：
+Task B：
 
 李昆晏：1. 部署和配置：把两个合约分别部署到两条链上，地址和网络配置整理好。
 2. 成功交换脚本：把正常交换的流程跑通，每一步等链上确认，最后打印两条链的交易链接。把函数名、参数和事件定下来，比如锁定、取款、退款各叫什么这些。
@@ -17,7 +17,7 @@ Task：
 4. 超时退款脚本：交换没完成时，到期后让原主人把钱退回来；没到期不让退，已经取走的也不能再退。
 
 Task C：
-周翮霖：
+周翮霖：浏览器界面、MetaMask 交互、交换步骤引导、公开设置与私密备份、状态查询和到期退款；通过本机 HTTP 适配复用 B 的协议与恢复函数，连接 A 已部署合约，并进行手动验收。
 
 # Rain / ETH 双链交换（B1、B2）
 
@@ -28,11 +28,13 @@ Task C：
 - 已实现：ERC20HTLC / ETHHTLC 对接基线、网络配置、部署记录、成功交换脚本、ABI、接口约定和本地测试。
 - 已验证：编译、合约规则测试，以及两个独立本地节点上的重复成功交换。
 - 已执行真实测试网部署，并于 2026-10-25 完成 100 Rain / 0.001 ETH 交换；两份合约均已部署、两笔交换状态均为 Claimed。部署记录见 `deployments/`。
-- B3/B4 已增加独立双链状态查看、超时退款协调和只锁不领的演示入口；本地验证与公网证据分别记录。前端由 Task C 对接。
+- 上述 B1/B2 阶段不包含前端或 B3/B4。后续已接入 B3 状态查看、B4 手动触发退款及 Task C 浏览器流程，入口见下文；退款不会仅因到期而自动执行。
 
 ## 安装与本地验证
 
 建议使用 Node.js 22 LTS。Windows 如阻止 PowerShell 的 npm/npx 脚本，使用 `npm.cmd` / `npx.cmd`。
+
+运行当前 Vite 前端时，Node.js 版本需满足 `^20.19.0 || >=22.12.0`。
 
 ```powershell
 npm.cmd ci
@@ -117,64 +119,53 @@ npm.cmd run swap:success
 
 若中途失败，脚本退出并将运行标记为 `incomplete`。先检查记录中的 pending/confirmed 交易及链上状态；超时不代表交易没有上链。保留秘密并使用固定接口按状态继续领取，或到期后由原发送人调用 `refund(swapId)`。本次没有自动恢复或重跑续接功能；直接重跑会创建一组新 ID。
 
-## B3 / B4：状态查看、超时退款与演示准备
+## B3 / B4：状态查看与到期退款
 
-首次运行先 `npm ci`、`npm run compile`。状态和退款入口使用 `node`，参数由 `npm run ... --` 传入。以下命令在仓库根目录执行，`<runId>` 替换为运行记录 ID，也可使用 JSON 文件路径。
+在仓库根目录运行，将 `RUN_ID` 替换为 B 命令行生成的真实 run ID，也可传入相应运行记录 JSON 路径：
 
-```sh
-npm run status -- <runId>
-npm run status -- <runId> --json
-npm run refund -- <runId> eth
-npm run refund -- <runId> rain
-npm run refund -- <runId> auto
+```powershell
+npm.cmd run status -- RUN_ID
+npm.cmd run refund -- RUN_ID rain
+npm.cmd run refund -- RUN_ID eth
 ```
 
-`status` 分别读取两条链，同一条链的锁和时间固定在同一个最新区块；输出状态、双方地址、金额、截止时间、剩余秒数和当前合约允许的操作。领取仍需正确秘密。它只从 Arbitrum 的 `SwapClaimed` 事件核验公开秘密，不读取 `.local/secrets/`、不发交易、不写记录。`--json` 输出可供 Task C 使用的 JSON；如需直接交给 JSON 解析器，使用 `node scripts/status.js <runId> --json`，避免 npm 的命令提示行。
+`npm.cmd run lock:only` 在双方建锁后停止，不公开秘密，供超时恢复演示使用。退款由各锁原发送人操作；未到期或已领取/退款时拒绝执行。CLI 运行记录与网页导出的公开设置格式不同，不能直接互换。
 
-| 状态 | 合约允许的操作 |
-|---|---|
-| `NOT_FOUND` | 无 |
-| `CLAIMABLE` | receiver 在到期前用正确秘密领取 |
-| `CLOSING` | 同上，但剩余时间小于 `MIN_CLAIM_WINDOW_SECONDS` |
-| `REFUNDABLE` | sender 退款；`区块时间 == timelock` 即进入此状态 |
-| `CLAIMED` / `REFUNDED` | 无，不再提供领取或退款操作 |
+## Task C：浏览器前端
 
-状态 JSON 的 `preimage` 来自 Arbitrum 的已核验领取事件，尚未找到时为 `null`。终端在核验成功时显示原文、计算所得哈希、运行记录的 hashlock 及比较结果。若 Rain 已可退款而 ETH 仍可领取，B3 会提示 Bob 注意双重损失风险。
+首次使用先在根目录执行上述 `npm.cmd ci` 和编译。网页需要同时运行两个终端。
 
-若 ETH 已领取而 Rain 仍可领取，建议会提醒 Bob 在 Rain 截止时间前用事件秘密领取。无法核验秘密时会明确提示这一条件；Rain 已过期时会警告 Bob 已错过窗口。
+**终端一，仓库根目录：**
 
-`refund` 默认目标为 `auto`，逐条检查 Rain 和 ETH，仅向已过期且仍 Active 的锁提交退款。签名者按链上 `sender` 匹配 Alice/Bob；交易前执行 `refund.staticCall`，确认后检查 `SwapRefunded` 事件及 Refunded 状态。提前、已领取、已退款或不存在的锁均不发交易。`auto` 中一条被拒仍会检查另一条。
-
-- 退出码 `0`：请求的退款均成功；`2`：至少一条被正确拒绝，可能已有另一条成功；`1`：配置、RPC 或交易错误。
-- 运行记录必须与当前两条链的部署地址、chain ID 和网络一致。
-- 退款按交易哈希和 chain ID 更新 `runs/<runId>.json`，确认后写入 `recovery.rain/eth = "Refunded"`。`deployments/` 中的已提交样例始终只读。
-
-准备一笔“两边只锁不领”的新实例：
-
-```sh
-npm run lock:only
-# macOS / Linux：缩短期限，供退款演示使用
-ETH_TIMELOCK_SECONDS=240 RAIN_TIMELOCK_SECONDS=480 MIN_TIMELOCK_GAP_SECONDS=120 MIN_CLAIM_WINDOW_SECONDS=60 npm run lock:only
+```powershell
+npm.cmd run server
 ```
 
-`lockOnly` 复用 B2 的建锁及核验流程，通过 `stopAfterLocks` 在领取前保存 `status: "locked"` 并结束。此命令会实际锁定配置的 Rain/ETH 并消耗测试网 gas；需要双方余额充足。普通成功交换入口默认不启用该选项。
+本机 HTTP 服务监听 `http://127.0.0.1:3001`，负责调用 B 的读链、核验、估费和交易准备函数；签名与广播由浏览器中的 MetaMask 完成。修改后端代码后需停止旧进程并重新启动。
 
-答辩前分别准备一笔已过期实例 P 和一笔尚未过期实例 Q：先展示 Q 的 `status` 和被拒绝的提前退款，再用 P 展示到期退款及最终 `REFUNDED` 状态。每次 `lockOnly` 都创建新实例，不能靠重跑恢复原实例。
+**终端二，从仓库根目录进入前端：**
 
-验证命令：
-
-```sh
-npm test
-npm run test:refund-path
-npm run test:cross-chain
-npm run status -- deployments/successful-swap-2026-10-25.json
+```powershell
+cd frontend
+npm.cmd ci
+npm.cmd run dev
 ```
 
-`test:refund-path` 自动启停两条本地链，覆盖只锁不领、到期边界、提前/重复/已领取拒绝、旧快照的预检拒绝、正确 sender、事件秘密和恢复记录。本地测试资料保存在被 Git 忽略的 `.local/refund-test-*/`，只代表本地链验证。B4 真实测试网锁仓及退款演示尚需另行执行并记录真实交易链接。
+日常重启不必重复 `npm.cmd ci`。Vite 将 `/api` 请求转发给上述服务；只启动前端不足以运行当前流程。可访问 Vite 地址下的 `/api/health` 检查服务：正常为 `status: ready`、`deploymentIssues: []`。有效元数据哈希差异可显示警告，执行代码不匹配则保持只读。
+
+打开 Vite 打印的 Local 地址，连接 MetaMask。英文界面包含钱包/切链、Rain 授权、私密备份验证、公共设置导入导出、两边锁仓、Alice 领取 ETH、Bob 从已确认 ETH 事件取得秘密后领取 Rain，以及到期退款。`Exchange Workflow` 根据链上记录、当前账户和网络引导操作；浏览器只保存当前公开设置及至多一笔未决交易，不保存多交换列表、交易历史或私密 preimage。
+
+具体输入、按钮和预期结果见 [完整操作流程](docs/TASK_C_FLOW.md)，实现与 A/B 对接见 [Task C 说明](docs/TASK_C.md)，前端启动补充见 [frontend/README.md](frontend/README.md)。前端按手动测试网验收流程操作；构建通过不等于完成公网现场演示，公网交易由参与者在 MetaMask 中逐笔确认并保存真实证据。
+
+日常操作沿用同一网页主机名和端口，`localhost` 与 `127.0.0.1` 的浏览器存储不同。Alice 刷新后需重新选择匹配私密备份以恢复内存中的秘密；Bob 只需公开设置。当前服务仅监听本机，不是已部署的远程多人服务。
+
+提交前可运行 `npm.cmd run test:refund-path`、`npm.cmd run test:web`，以及在 `frontend/` 中运行 `npm.cmd run build`。这些集成测试只在本地节点发送交易，不能替代真实 MetaMask 验收。
 
 ## Task A / C 对接
 
-完整函数签名、字段、事件、错误、状态值和时间边界见 [docs/INTERFACE.md](docs/INTERFACE.md)。前端直接导入 `config/abi/ERC20HTLC.json` / `ETHHTLC.json`，网络及地址来自公开部署记录；不要把 `.env` 私钥暴露到浏览器。
+当前网页通过 `scripts/serveFrontend.mjs`、`scripts/lib/webCoordinator.mjs` 和 `webProtocol.mjs` 接入 B；这些是网页集成新增的适配。HTTP 与 CLI 共用 B 的 `protocol.js`、`recovery.js`、`runtime.js` 中相关函数，公开输入与预期字段工具位于 `shared/swapInputs.mjs`。C 展示操作和结果，B 准备与核验，A 执行链上资产规则。
+
+完整函数签名、字段、事件、错误、状态值和时间边界见 [docs/INTERFACE.md](docs/INTERFACE.md)。前端直接引用 `config/abi/ERC20HTLC.json` / `ETHHTLC.json` 和 `deployments/sepolia.json` / `arbitrumSepolia.json`，不维护 ABI 副本或另一套部署地址。Task A 更新接口后导出共享 ABI 并核对前端函数调用；Task B 重新部署后更新公开部署记录，再重新联调。浏览器使用 MetaMask 签名，不导入读取 `.env` 私钥的 Node.js 脚本。
 
 | 动作 | ERC20HTLC | ETHHTLC |
 |---|---|---|

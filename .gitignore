@@ -9,3 +9,5 @@ typechain-types/
 ignition/deployments/
 .local/
 runs/
+/.vscode/
+htlc-private-*.json
