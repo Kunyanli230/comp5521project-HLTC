@@ -15,7 +15,10 @@ import ethHtlcAbi from "../config/abi/ETHHTLC.json";
 // The public deployment result of Task B: It includes the contract address, network and public account, but does not include the wallet private key.
 import sepoliaDeployment from "../deployments/sepolia.json";
 import arbitrumDeployment from "../deployments/arbitrumSepolia.json";
+// Public record of the 2026-10-25 successful testnet exchange: swap IDs and hashlock only, used to prefill Inspect for demos.
+import exampleSwap from "../deployments/successful-swap-2026-10-25.json";
 import { attachWorkflow } from "./lib/workflow.js";
+import { formatDeadline, fillRecord, attachCopyHandler } from "./lib/display.js";
 // Use the period and status judgment of B through the front-end adaptation function; The Node.js/.env runtime of B does not enter the browser.
 import { fieldMismatches, validateDurations, recoveryView, requireBytes32, parseSwapTerms, expectedLock } from "./lib/swapProtocol.js";
 const connectButton = document.querySelector("#connect-button");
@@ -200,6 +203,8 @@ async function refreshWalletState() {
     }
 
     chainIdText.textContent = Number.parseInt(chainId, 16).toString();
+    // AI-assisted: network switching only makes sense once an account is connected.
+    setNetworkButtons(accounts.length > 0);
 
     if (accounts.length === 0) {
       accountText.textContent = "Not connected";
@@ -258,6 +263,7 @@ async function refreshWalletState() {
     console.error(error);
 
     accountText.textContent = "Not connected";
+    setNetworkButtons(false);
     chainIdText.textContent = "Unknown";
     ethBalanceText.textContent = "Unavailable";
     rainBalanceText.textContent = "Unavailable";
@@ -267,6 +273,12 @@ async function refreshWalletState() {
     workflowUI?.walletChanged();
   }
 }
+// Enable the two Switch buttons only while an account is connected; the handlers are unchanged.
+function setNetworkButtons(enabled) {
+  sepoliaButton.disabled = !enabled;
+  arbitrumButton.disabled = !enabled;
+}
+
 // request a wallet network switch and refresh the displayed state.
 // Let the same function switch between different networks
 async function switchNetwork(targetChainId) {
@@ -308,8 +320,7 @@ async function switchNetwork(targetChainId) {
         "Unable to switch networks. Please check MetaMask.";
     }
   } finally {
-    sepoliaButton.disabled = false;
-    arbitrumButton.disabled = false;
+    setNetworkButtons(accountText.textContent !== "Not connected");
   }
 }
 // When clicked, perform the operation within the curly braces.
@@ -517,8 +528,12 @@ function readExpectedLockFields(asset, terms = readSwapTerms()) {
   }, asset);
 }
 
+const HASHLOCK_SKIPPED = "Skipped: no agreed hashlock entered. Enter it to compare the recorded fields with the agreement.";
+
 function checkLockParameters(swap, asset) {
   if (swap.status === 0n) return "No on-chain lock exists for this swap ID.";
+  // AI-assisted: a blank hashlock is an optional field left empty, not a failure.
+  if (!(asset === "rain" ? expectedRainHashlockInput : expectedEthHashlockInput).value.trim()) return HASHLOCK_SKIPPED;
   try {
     const mismatches = fieldMismatches(swap, readExpectedLockFields(asset));
     return mismatches.length
@@ -548,8 +563,7 @@ function renderLockReport(record, asset) {
     "Swap ID: " + swapId, "HTLC contract: " + chain.address,
     "Sender: " + swap.sender, "Receiver: " + swap.receiver, "Token: " + swap.token,
     "Amount: " + amount, "Hashlock: " + swap.hashlock,
-    "Deadline (local time): " + new Date(Number(swap.timelock) * 1000).toLocaleString(),
-    "Deadline (Unix seconds): " + swap.timelock
+    "Deadline: " + formatDeadline(swap.timelock)
   ].join("\n");
   const stateText = rain ? rainLockStateText : ethLockStateText;
   stateText.textContent = ["Not created", "Active", "Claimed", "Refunded"][Number(swap.status)] || "Unknown";
@@ -659,9 +673,10 @@ function getPairParameterErrors(snapshot) {
   const eth = snapshot.eth.swap;
   if (rain.status === 0n || eth.status === 0n) return ["Both locks must exist before checking their parameters."];
   try {
-    const terms = readSwapTerms();
     const rainHash = expectedRainHashlockInput.value.trim().toLowerCase();
     const ethHash = expectedEthHashlockInput.value.trim().toLowerCase();
+    if (!rainHash && !ethHash) return [HASHLOCK_SKIPPED];
+    const terms = readSwapTerms();
     if (!isHexString(rainHash, 32) || !isHexString(ethHash, 32) || rainHash === ZeroHash || ethHash === ZeroHash) {
       return ["Enter valid, non-zero agreed hashlocks in both sections."];
     }
@@ -745,12 +760,34 @@ function applyPublicFields(values) {
   }
 }
 
+// AI-assisted: each Inspect card reports only its own swap-ID problem instead of repeating the first failure everywhere.
+function lookupFieldMessage(input, label) {
+  const value = input.value.trim();
+  if (!value) return "Enter the " + label + " above to look it up.";
+  try {
+    requireBytes32(value, label);
+    return null;
+  } catch (error) {
+    return error.shortMessage || error.message || "Invalid " + label + ".";
+  }
+}
+
 // ai assistent: Display existing snapshots
 function renderWorkflowSnapshot(snapshot, message = "Not checked.") {
   if (!snapshot) {
-    for (const node of [rainLockStateText, ethLockStateText, rainParameterCheckText,
-      ethParameterCheckText, rainLockAssessmentText, pairTimelockCheckText,
-      pairParameterCheckText, crossChainReportText]) node.textContent = message;
+    const rainIssue = lookupFieldMessage(rainSwapQueryInput, "Rain swap ID");
+    const ethIssue = lookupFieldMessage(ethSwapQueryInput, "ETH swap ID");
+    // 一侧输入无效时，另一侧不复用它的错误；成对读取尚未发生，不能伪称已有状态。
+    const rainMessage = rainIssue || (ethIssue ? "Enter a valid ETH swap ID to read both locks." : message);
+    const ethMessage = ethIssue || (rainIssue ? "Enter a valid Rain swap ID to read both locks." : message);
+    const invalidLookup = Boolean(rainIssue || ethIssue);
+    rainLockStateText.textContent = invalidLookup ? "Not checked" : message;
+    ethLockStateText.textContent = invalidLookup ? "Not checked" : message;
+    rainParameterCheckText.textContent = rainMessage;
+    ethParameterCheckText.textContent = ethMessage;
+    rainLockAssessmentText.textContent = rainMessage;
+    const pairMessage = rainIssue || ethIssue ? "Enter valid swap IDs in both sections above." : message;
+    for (const node of [pairTimelockCheckText, pairParameterCheckText, crossChainReportText]) node.textContent = pairMessage;
     rainLockDetailsText.textContent = "";
     ethLockReportText.textContent = "";
     return;
@@ -773,9 +810,39 @@ function renderWorkflowSnapshot(snapshot, message = "Not checked.") {
   pairTimelockCheckText.textContent = assessActivePairTimelocks(snapshot);
   const errors = getPairParameterErrors(snapshot);
   pairParameterCheckText.textContent = errors.length
-    ? "Parameter checks not passed:\n" + errors.join("\n")
+    ? errors[0] === HASHLOCK_SKIPPED ? HASHLOCK_SKIPPED : "Parameter checks not passed:\n" + errors.join("\n")
     : "Parameters match at these snapshot blocks. State, deadlines and caller authorization are checked separately.";
 }
+
+// AI-assisted: demo shortcuts for Inspect. Only public IDs and the hashlock are filled; no secret is involved.
+function applyInspectLookup(values, note) {
+  applyPublicFields(values);
+  document.querySelector("#inspect-shortcut-note").textContent = note;
+}
+
+document.querySelector("#load-example-button").addEventListener("click", () => {
+  applyInspectLookup(
+    { rainSwapId: exampleSwap.rain.swapId, ethSwapId: exampleSwap.eth.swapId, hashlock: exampleSwap.hashlock },
+    "Example swap IDs and hashlock loaded from the recorded 2026-10-25 exchange. Both chains are being read."
+  );
+});
+
+// #/inspect?rain=0x…&eth=0x…&hashlock=0x… prefills the lookup; the route itself is handled by the step guide.
+let appliedHashQuery = "";
+function applyHashQuery() {
+  if (window.location.hash.split("?")[0] !== "#/inspect") return;
+  const query = window.location.hash.split("?")[1] || "";
+  if (!query) { appliedHashQuery = ""; return; }
+  if (query === appliedHashQuery) return;
+  appliedHashQuery = query;
+  const params = new URLSearchParams(query);
+  const values = {};
+  if (isHexString(params.get("rain"), 32)) values.rainSwapId = params.get("rain");
+  if (isHexString(params.get("eth"), 32)) values.ethSwapId = params.get("eth");
+  if (isHexString(params.get("hashlock"), 32)) values.hashlock = params.get("hashlock");
+  if (Object.keys(values).length) applyInspectLookup(values, "Swap IDs loaded from the page link. Both chains are being read.");
+}
+window.addEventListener("hashchange", applyHashQuery);
 // Connect the existing pages with the new process
 workflowUI = attachWorkflow({
   rain: HTLC_CHAINS.rain, eth: HTLC_CHAINS.eth, rainToken: RAIN_ADDRESS,
@@ -813,11 +880,12 @@ workflowUI = attachWorkflow({
 });
 // Update the guide and buttons based on the current account and network on the page, not redeploy the contract.
 workflowUI.walletChanged();
-document.querySelector("#deployment-info").textContent = [
-  "Rain ERC20 / Ethereum Sepolia (11155111): " + RAIN_ADDRESS,
-  "Rain HTLC / Ethereum Sepolia (11155111): " + ERC20_HTLC_ADDRESS,
-  "ETH HTLC / Arbitrum Sepolia (421614): " + ETH_HTLC_ADDRESS,
-  "The two contracts are queried independently. Wallet signatures authorize each transaction."
-].join("\n");
+fillRecord(document.querySelector("#deployment-info"), [
+  ["Rain ERC20 · Ethereum Sepolia (11155111)", RAIN_ADDRESS],
+  ["Rain HTLC · Ethereum Sepolia (11155111)", ERC20_HTLC_ADDRESS],
+  ["ETH HTLC · Arbitrum Sepolia (421614)", ETH_HTLC_ADDRESS]
+]);
+attachCopyHandler();
+applyHashQuery();
 
 

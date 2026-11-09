@@ -50,6 +50,21 @@
 
 ## Task C（2026-11-08）
 
+### 为 C 接入而修改的 B 共用函数
+
+| 文件/函数 | AI 辅助内容 |
+|---|---|
+| `scripts/lib/protocol.js`：`lockCall` | 从原 B 建锁调用抽出方法、参数顺序、ETH value，供 CLI 和 HTTP 共同使用 |
+| 同文件：`runSuccessfulSwap` | 接入共用 `expectedLock/lockCall` 和 `recovery.readConfirmedClaim`，避免字段/事件逻辑重复；保留原有 `stopAfterLocks` 仅建锁分支 |
+| 同文件：`verifyCreated`、`module.exports` | 原创建事件检查函数新增共用导出，HTTP 调用同一函数；原 `verifyLock/assertTimelocks` 仍供接入使用 |
+| `scripts/lib/recovery.js`：`readConfirmedClaim` | 新增共用的领取回执、确认数、规范区块、对应合约/ID 事件、Claimed 状态及秘密哈希核验 |
+| 同文件：`prepareRefund`、`refundIfAllowed` | 将原退款资格检查抽成只读准备函数；CLI 仍选择本地签名者并发交易，HTTP 使用相同前置条件后返回未签名请求 |
+| `scripts/lib/runtime.js`：`splitSolidityMetadata`、`compareBytecode` | 新增 Solidity 尾部长度与 CBOR 完整解析；分类为完整相同、仅已识别元数据哈希不同或不兼容。直接运行时依赖 `cbor@8.1.0` 用于解码，替代固定长度截尾 |
+| 同文件：`assertCode`、`module.exports` | 三态部署检查、元数据警告、`HTLC_CODE_MISMATCH` 错误码及共用比较函数导出；RPC 错误仍单独上报 |
+| `scripts/lib/webCoordinator.mjs`、`webProtocol.mjs`、`scripts/serveFrontend.mjs` | 新增的网页 HTTP 适配：只读快照、动作准备/估费、确认核验、阶段判断及同源本机 API；调用 B 共用函数，不创建网页账户私钥签名钱包 |
+| `shared/swapInputs.mjs` | AI 辅助的公开字段白名单、金额/期限解析、预期锁字段和错误信息工具，CLI/网页共享 |
+| `test/Coordinator.js`、`test/DeploymentCode.js`、`test/integration/webCoordinator.mjs` | 共用金额精度、部署检查边界、HTTP 成功/双边退款及拒绝路径的本地回归检查；不作为公网验收 |
+
 AI 在 `index.html/style.css` 添加统一原生结果弹窗。成功由后端核验返回触发，说明角色、数量和下一步；取消及核验未完成使用警告，保留公开链接与未决保护。
 
 AI 在 `index.html`、`guide.js`、`style.css` 添加各视图共用的双链状态栏，使用既有快照展示状态、区块及查询中说明；不改变 B 或交易判断。同步 FLOW 的查看位置。实际 guide 开发检查及构建通过，尚待用户视觉验收。

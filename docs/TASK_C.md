@@ -3,7 +3,7 @@
 - [完整操作流程](TASK_C_FLOW.md)：输入、按钮、预期结果、成功交换、退款、恢复及异常验收。
 - 本文件：任务职责、当前实现、与 A/B 的连接及限制。
 
-实际测试证据集中在 [TEST_RESULTS.md](TEST_RESULTS.md)，AI 辅助范围保留在 [AI_ASSISTANCE.md](AI_ASSISTANCE.md)。旧操作笔记和旧验收表已迁入验证记录的历史归档区；不再分别维护 HTTP 说明、Task C 笔记和测试计划三套内容。
+实际测试证据集中在 [TEST_RESULTS.md](TEST_RESULTS.md)，AI 辅助范围保留在 [AI_ASSISTANCE.md](AI_ASSISTANCE.md)。验证记录已恢复 main 原始历史及已留存的 Task C 验收证据；未找回的未提交长稿不声称完整恢复。不再分别维护 HTTP 说明、Task C 笔记和测试计划三套内容。
 
 ## 1. 实现什么
 
@@ -168,13 +168,13 @@ B `estimate()` 调用 RPC `estimateGas`，加约 20% gas 用量余量，读取�
 
 ```powershell
 # 仓库根目录
-npm.cmd test
-npm.cmd run test:web
+npm test
+npm run test:web
 # 前端目录
 cd frontend
-npm.cmd run build
+npm run build
 ```
-B 原成功/恢复入口的集成回归命令仍为 `npm.cmd run test:cross-chain`、`npm.cmd run test:refund-path`；HTTP 接入时已执行过，元数据修正后的本轮结果以上述测试与 HTTP 检查为准，不混淆执行日期或范围。
+B 原成功/恢复入口的集成回归命令仍为 `npm run test:cross-chain`、`npm run test:refund-path`；HTTP 接入时已执行过，元数据修正后的本轮结果以上述测试与 HTTP 检查为准，不混淆执行日期或范围。
 
 | 场景 | 已有证据 | 新 HTTP 入口状态 |
 |---|---|---|

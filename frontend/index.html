@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rain / ETH Swap</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
@@ -30,8 +31,8 @@
       <p id="wallet-address-preview" class="wallet-address-preview">No account selected</p>
       <div class="button-row wallet-actions">
         <button id="connect-button" type="button">Connect Wallet</button>
-        <button id="sepolia-button" type="button" class="secondary">Switch to Ethereum Sepolia</button>
-        <button id="arbitrum-button" type="button" class="secondary">Switch to Arbitrum Sepolia</button>
+        <button id="sepolia-button" type="button" class="secondary" disabled>Switch to Ethereum Sepolia</button>
+        <button id="arbitrum-button" type="button" class="secondary" disabled>Switch to Arbitrum Sepolia</button>
       </div>
       <p id="wallet-guidance">Connect the account needed for the selected step.</p>
       <details class="wallet-details">
@@ -81,12 +82,33 @@
 
     <main id="main-content">
       <div class="page-kicker"><span id="page-step">STEP 01 / 06</span><span id="page-mode">GUIDED SWAP</span></div>
-      <section class="lock-status-strip" aria-label="Current on-chain lock states">
+      <section id="lock-bridge" class="lock-status-strip" aria-label="Current on-chain lock states" data-rain-flow="unchecked" data-eth-flow="unchecked">
         <p class="eyebrow">CURRENT ON-CHAIN STATE</p>
-        <dl class="lock-status-values">
-          <div><dt>Rain · Ethereum Sepolia</dt><dd id="current-rain-state">Not checked</dd></div>
-          <div><dt>ETH · Arbitrum Sepolia</dt><dd id="current-eth-state">Not checked</dd></div>
-        </dl>
+        <div class="bridge">
+          <div class="bridge-node bridge-node-rain">
+            <span class="bridge-chip" aria-hidden="true">R</span>
+            <h3>Rain · Ethereum Sepolia</h3>
+            <p class="bridge-role">Alice locks · Bob claims</p>
+            <p id="current-rain-amount" class="bridge-amount">—</p>
+            <p id="current-rain-state" class="bridge-state">Not checked</p>
+            <p id="current-rain-countdown" class="countdown" hidden></p>
+          </div>
+          <div class="bridge-lanes">
+            <p id="current-rain-flow" class="bridge-caption">RAIN · NOT CHECKED</p>
+            <div class="bridge-lane bridge-lane-rain" aria-hidden="true"><span class="bridge-dot"></span><span class="bridge-dot"></span><span class="bridge-dot"></span></div>
+            <p id="current-hashlock" class="bridge-hashlock" data-present="false">HASHLOCK · —</p>
+            <div class="bridge-lane bridge-lane-eth" aria-hidden="true"><span class="bridge-dot"></span><span class="bridge-dot"></span><span class="bridge-dot"></span></div>
+            <p id="current-eth-flow" class="bridge-caption">ETH · NOT CHECKED</p>
+          </div>
+          <div class="bridge-node bridge-node-eth">
+            <span class="bridge-chip" aria-hidden="true">E</span>
+            <h3>ETH · Arbitrum Sepolia</h3>
+            <p class="bridge-role">Bob locks · Alice claims</p>
+            <p id="current-eth-amount" class="bridge-amount">—</p>
+            <p id="current-eth-state" class="bridge-state">Not checked</p>
+            <p id="current-eth-countdown" class="countdown" hidden></p>
+          </div>
+        </div>
         <p id="current-locks-read-status">Click Read Both Locks to check both networks.</p>
         <a href="#/inspect">View lock IDs and details</a>
       </section>
@@ -132,9 +154,9 @@
           </div>
           <details id="private-draft-details" class="technical-details" hidden>
             <summary>View draft IDs and hashlock</summary>
-            <p>Hashlock: <code id="swap-hashlock">Not generated</code></p>
-            <p>Rain swap ID: <code id="rain-swap-id">Not generated</code></p>
-            <p>ETH swap ID: <code id="eth-swap-id">Not generated</code></p>
+            <p>Hashlock: <code id="swap-hashlock">Not generated</code> <button type="button" class="copy-button" data-copy-target="swap-hashlock">Copy</button></p>
+            <p>Rain swap ID: <code id="rain-swap-id">Not generated</code> <button type="button" class="copy-button" data-copy-target="rain-swap-id">Copy</button></p>
+            <p>ETH swap ID: <code id="eth-swap-id">Not generated</code> <button type="button" class="copy-button" data-copy-target="eth-swap-id">Copy</button></p>
             <button id="use-draft-button" type="button" class="secondary">Use This Draft</button>
           </details>
         </section>
@@ -249,20 +271,24 @@
       <article data-view="inspect" aria-labelledby="inspect-title" hidden>
         <h2 id="inspect-title" tabindex="-1">Inspect the on-chain locks</h2>
         <p>Enter both swap IDs, then click Read Both Locks above. These read-only queries work without switching MetaMask. Agreed hashlocks and terms are needed for parameter verification, not for reading the records.</p>
+        <div class="inspect-shortcuts">
+          <button id="load-example-button" type="button" class="secondary">Load example swap (2026-10-25)</button>
+          <span id="inspect-shortcut-note" role="status">Fills both swap IDs and the hashlock from the recorded successful testnet exchange. A link such as <code>#/inspect?rain=0x…&amp;eth=0x…&amp;hashlock=0x…</code> does the same.</span>
+        </div>
         <section>
           <h3>Rain · Ethereum Sepolia</h3>
-          <p><label for="rain-swap-query">Rain swap ID to look up</label><input id="rain-swap-query" type="text" placeholder="0x..." /></p>
-          <p><label for="expected-rain-hashlock">Agreed Rain hashlock</label><input id="expected-rain-hashlock" type="text" placeholder="0x..." /></p>
-          <p>On-chain state: <span id="rain-lock-state">Not checked</span></p>
+          <p class="copyable-field"><label for="rain-swap-query">Rain swap ID to look up</label><input id="rain-swap-query" type="text" placeholder="0x..." /><button type="button" class="copy-button" data-copy-target="rain-swap-query" aria-label="Copy Rain swap ID">Copy</button></p>
+          <p class="copyable-field"><label for="expected-rain-hashlock">Agreed Rain hashlock</label><input id="expected-rain-hashlock" type="text" placeholder="0x..." /><button type="button" class="copy-button" data-copy-target="expected-rain-hashlock" aria-label="Copy agreed Rain hashlock">Copy</button></p>
+          <p>On-chain state: <span id="rain-lock-state">Not checked</span> <span id="rain-lock-countdown" class="countdown" hidden></span></p>
           <p>Parameter check: <span id="rain-parameter-check">Not checked</span></p>
           <details><summary>State and deadline assessment</summary><pre id="rain-lock-assessment">Not checked</pre></details>
           <details><summary>Recorded Rain fields</summary><pre id="rain-lock-details"></pre></details>
         </section>
         <section>
           <h3>ETH · Arbitrum Sepolia</h3>
-          <p><label for="eth-swap-query">ETH swap ID to look up</label><input id="eth-swap-query" type="text" placeholder="0x..." /></p>
-          <p><label for="expected-eth-hashlock">Agreed ETH hashlock</label><input id="expected-eth-hashlock" type="text" placeholder="0x..." /></p>
-          <p>On-chain state: <span id="eth-lock-state">Not checked</span></p>
+          <p class="copyable-field"><label for="eth-swap-query">ETH swap ID to look up</label><input id="eth-swap-query" type="text" placeholder="0x..." /><button type="button" class="copy-button" data-copy-target="eth-swap-query" aria-label="Copy ETH swap ID">Copy</button></p>
+          <p class="copyable-field"><label for="expected-eth-hashlock">Agreed ETH hashlock</label><input id="expected-eth-hashlock" type="text" placeholder="0x..." /><button type="button" class="copy-button" data-copy-target="expected-eth-hashlock" aria-label="Copy agreed ETH hashlock">Copy</button></p>
+          <p>On-chain state: <span id="eth-lock-state">Not checked</span> <span id="eth-lock-countdown" class="countdown" hidden></span></p>
           <p>Parameter check: <span id="eth-parameter-check">Not checked</span></p>
           <details><summary>Recorded ETH fields and deadline assessment</summary><pre id="eth-lock-report"></pre></details>
         </section>
@@ -273,19 +299,26 @@
           <p>Active-pair state and deadline check:</p><pre id="pair-timelock-check">Not checked.</pre>
           <details><summary>Snapshot blocks, chain times and recorded deadlines</summary><pre id="cross-chain-report">Not checked.</pre></details>
         </section>
-        <details><summary>Configured networks and contracts</summary><pre id="deployment-info"></pre></details>
+        <details><summary>Configured networks and contracts</summary><dl id="deployment-info" class="record-summary"></dl><p class="subtle-status">The two contracts are queried independently. Wallet signatures authorize each transaction.</p></details>
       </article>
 
       <article data-view="refund" aria-labelledby="refund-title" hidden>
         <h2 id="refund-title" tabindex="-1">Refund an expired lock</h2>
         <p>Load the existing setup in <a href="#/prepare">Prepare</a>, then read both locks. Expiry does not automatically refund assets. Each original sender claims their own refund on the corresponding network.</p>
-        <section id="refund-section">
+        <section id="refund-rain-section" class="refund-card">
           <h3>Alice's Rain refund · Ethereum Sepolia</h3>
           <p id="refund-rain-guidance">Read both locks to see the Rain deadline and refund eligibility.</p>
+          <p id="refund-rain-countdown" class="countdown" hidden></p>
           <button id="refund-rain-button" type="button" disabled>Refund Expired Rain</button>
+        </section>
+        <section id="refund-eth-section" class="refund-card">
           <h3>Bob's ETH refund · Arbitrum Sepolia</h3>
           <p id="refund-eth-guidance">Read both locks to see the ETH deadline and refund eligibility.</p>
+          <p id="refund-eth-countdown" class="countdown" hidden></p>
           <button id="refund-eth-button" type="button" disabled>Refund Expired ETH</button>
+        </section>
+        <section id="refund-result-section">
+          <h3>Refund transaction</h3>
           <p>Only expired Active locks can be refunded. A Claimed or Refunded lock cannot be refunded again. Rain usually expires later than ETH.</p>
           <p id="refund-status" role="status">No refund transaction submitted.</p>
           <a id="refund-tx-link" target="_blank" rel="noopener noreferrer" hidden>View refund transaction</a>

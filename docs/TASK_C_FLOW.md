@@ -28,11 +28,11 @@ Alice 用 Ethereum Sepolia 上的 1 Rain，换 Bob 在 Arbitrum Sepolia 上的 0
 在 VS Code 打开项目文件夹，在终端执行：
 
 ```powershell
-cd C:\Users\13543\Desktop\comp5521project-HLTC
-npm.cmd ci
-npm.cmd run compile
+# 在已打开的仓库根目录执行
+npm ci
+npm run compile
 cd frontend
-npm.cmd ci
+npm ci
 ```
 
 已安装且编译产物存在时，日常重启直接进入下一步。运行网站不需要重新部署合约。
@@ -40,8 +40,8 @@ npm.cmd ci
 ### 1.2 终端一：启动 B
 
 ```powershell
-cd C:\Users\13543\Desktop\comp5521project-HLTC
-npm.cmd run server
+# 在已打开的仓库根目录执行
+npm run server
 ```
 
 等到出现 `Task B coordinator: http://127.0.0.1:3001`，保持运行。仅有 `compiler metadata differs` 警告时可以继续。修改后端文件后，要在此终端按 Ctrl+C 再执行启动命令，旧 Node 进程不会自动加载新文件。
@@ -51,8 +51,8 @@ npm.cmd run server
 新建另一个终端：
 
 ```powershell
-cd C:\Users\13543\Desktop\comp5521project-HLTC\frontend
-npm.cmd run dev
+cd frontend
+npm run dev
 ```
 
 浏览器打开 `http://localhost:5173`。如果 Vite 打印的是其他端口，按该端口访问；恢复旧设置时尽量沿用同一主机名和端口。`localhost` 与 `127.0.0.1` 使用不同的浏览器存储。
@@ -69,6 +69,8 @@ npm.cmd run dev
 
 <a id="wallet"></a>
 ## 2. 连接钱包、切换账户和网络
+
+未连接账户时，两颗切网按钮保持禁用。先点击 Connect Wallet 并授权账户，再按本步骤所需网络切换。
 
 MetaMask 中使用已有的两个测试账户。公开地址如下，私钥不填入网页：
 

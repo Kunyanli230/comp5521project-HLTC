@@ -1,6 +1,8 @@
 // This document is responsible for guiding the interface on "which page the user should view and how to operate on this page".
-import { formatEther, formatUnits } from "ethers";
+import { formatUnits } from "ethers";
 import { recoveryView } from "./swapProtocol.js";
+import { countdownText, formatDeadline, fillRecord } from "./display.js";
+import { renderBridge } from "./bridge.js";
 
 // The normal page exchange sequence is used to display step navigation, return to the previous page, and determine whether the recommended step is after the current page.
 const STEPS = ["prepare", "lock-rain", "lock-eth", "claim-eth", "claim-rain", "complete"];
@@ -21,10 +23,12 @@ const NETWORKS = { 11155111: "Ethereum Sepolia", 421614: "Arbitrum Sepolia" };
 const STATES = ["Not created", "Active", "Claimed", "Refunded"];
 
 // Initialize step-by-step booting
-export function attachStepGuide() {
+// options.onDeadlinePassed(asset) is called once per Active lock when the local countdown reaches zero.
+export function attachStepGuide(options = {}) {
   const el = (id) => document.getElementById(id);
   const pages = [...document.querySelectorAll("[data-view]")];
-  let context = { setup: null, snapshot: null, state: null, who: {}, busy: false, backupVerified: false };
+  // lookupSnapshot: records read for the Inspect IDs when no complete public setup is loaded; feeds the status strip only.
+  let context = { setup: null, snapshot: null, lookupSnapshot: null, state: null, who: {}, busy: false, backupVerified: false };
   let route = "prepare";
   let lastGuided = "prepare";
 
@@ -49,7 +53,8 @@ export function attachStepGuide() {
   }
 
   function showRoute(focus = false) {
-    const requested = window.location.hash.replace(/^#\/?/, "");
+    // "#/inspect?rain=0x…&eth=0x…" keeps the route; main.js reads the query part.
+    const requested = window.location.hash.replace(/^#\/?/, "").split("?")[0];
     route = Object.hasOwn(LABELS, requested) ? requested : "prepare";
     if (STEPS.includes(route)) lastGuided = route;
     for (const page of pages) page.hidden = page.dataset.view !== route;
@@ -81,18 +86,9 @@ export function attachStepGuide() {
     }
   }
 
+  // Hex IDs, hashes and addresses in these lists get a Copy button (see display.js).
   function displayRecord(id, rows) {
-    const list = el(id);
-
-    list.replaceChildren();
-
-    for (const [label, value] of rows) {
-      const term = document.createElement("dt");
-      const detail = document.createElement("dd");
-      term.textContent = label;
-      detail.textContent = String(value);
-      list.append(term, detail);
-    }
+    fillRecord(el(id), rows);
   }
 
   // ai assistent: The refund prompt uses the time of the queried block
@@ -102,11 +98,42 @@ export function attachStepGuide() {
     if (state === "NOT_FOUND") return "No lock exists under this ID. Nothing to refund.";
     if (state === "CLAIMED") return "Already Claimed. These assets cannot be refunded.";
     if (state === "REFUNDED") return "Already Refunded. No further refund is needed.";
-    const deadline = new Date(Number(record.swap.timelock) * 1000).toLocaleString();
+    const deadline = formatDeadline(record.swap.timelock);
     return state !== "REFUNDABLE"
-      ? "Not expired at the last read block. " + remaining + " seconds remained. Deadline: " + deadline + ". Wait, then read both locks again."
+      ? "Not expired at the last read block. " + remaining + " seconds remained. Deadline: " + deadline + ". The countdown below follows this device's clock; read both locks again once it reaches zero."
       : "Expired at the last read block. " + owner + " must select " + network + " and request the refund. Original sender: " + record.swap.sender + ".";
   }
+
+  // AI-assisted: Active 锁每秒更新本机时间估算；到零只触发一次读链，不直接开放退款按钮。
+  const COUNTDOWN_IDS = {
+    rain: ["current-rain-countdown", "rain-lock-countdown", "refund-rain-countdown"],
+    eth: ["current-eth-countdown", "eth-lock-countdown", "refund-eth-countdown"]
+  };
+  const expiryNotified = new Set();
+  function tickCountdowns() {
+    const snapshot = context.snapshot || context.lookupSnapshot;
+    for (const asset of ["rain", "eth"]) {
+      const record = snapshot?.[asset];
+      const active = record && Number(record.swap.status) === 1;
+      const view = active ? countdownText(record.swap.timelock) : null;
+      for (const id of COUNTDOWN_IDS[asset]) {
+        const node = el(id);
+        node.hidden = !active;
+        if (!active) continue;
+        node.textContent = view.text;
+        node.dataset.expired = String(view.expired);
+      }
+      if (!active) continue;
+      const key = asset + ":" + record.swapId;
+      if (view.expired && !expiryNotified.has(key)) {
+        expiryNotified.add(key);
+        options.onDeadlinePassed?.(asset);
+      }
+    }
+  }
+  const countdownTimer = setInterval(() => {
+    if (document.visibilityState === "visible") tickCountdowns();
+  }, 1000);
 
   //Here, the control is for the guide button. The actual lock, claim, and refund buttons are still checked and controlled by workflow.js.
   function render() {
@@ -201,14 +228,19 @@ export function attachStepGuide() {
 
     const rain = snapshot?.rain;
     const eth = snapshot?.eth;
-    // AI-assisted: All steps share the same snapshot, directly showing the real status of both sides
-    el("current-rain-state").textContent = rain ? STATES[Number(rain.swap.status)] || "Unknown" : "Not checked";
-    el("current-eth-state").textContent = eth ? STATES[Number(eth.swap.status)] || "Unknown" : "Not checked";
-    el("current-locks-read-status").textContent = !snapshot
+    // AI-assisted: All steps share the same snapshot, directly showing the real status of both sides.
+    // Without a complete public setup (manual Inspect lookup) the strip still follows the records read for the entered IDs.
+    const strip = snapshot || context.lookupSnapshot;
+    el("current-rain-state").textContent = strip ? STATES[Number(strip.rain.swap.status)] || "Unknown" : "Not checked";
+    el("current-eth-state").textContent = strip ? STATES[Number(strip.eth.swap.status)] || "Unknown" : "Not checked";
+    el("current-locks-read-status").textContent = !strip
       ? "Click Read Both Locks to check both networks."
       : busy ? "Transaction in progress. States shown are from the last completed chain read."
         : reading ? "Updating both networks. Showing the previous read until it completes."
-          : "Latest read: Rain block " + rain.block.number + " · ETH block " + eth.block.number + ".";
+          : "Latest read: Rain block " + strip.rain.block.number + " · ETH block " + strip.eth.block.number
+            + (snapshot ? "." : ". Showing the IDs entered in Inspect; load a public setup for step guidance.");
+    renderBridge(strip, setup);
+    tickCountdowns();
     el("rain-step-state").textContent = !rain ? "Read both locks to check whether Rain is already locked."
       : Number(rain.swap.status) === 0 ? state?.lockRain
         ? "Rain is not locked yet. Verify Alice's backup, approve if needed, then Lock Rain."
@@ -230,7 +262,7 @@ export function attachStepGuide() {
       ["Recorded Rain amount", formatUnits(rain.swap.amount, 18) + " Rain (MST)"],
       ["Original sender", rain.swap.sender], ["Recipient", rain.swap.receiver],
       ["Recorded hashlock", rain.swap.hashlock],
-      ["Rain deadline (local display)", new Date(Number(rain.swap.timelock) * 1000).toLocaleString()]
+      ["Rain deadline", formatDeadline(rain.swap.timelock)]
     ] : [["Rain lock", rain ? "Not created" : "Not checked"]]);
     el("refund-rain-guidance").textContent = refundMessage(rain, "Ethereum Sepolia", "Alice");
     el("refund-eth-guidance").textContent = refundMessage(eth, "Arbitrum Sepolia", "Bob");
@@ -263,7 +295,7 @@ export function attachStepGuide() {
   for (const id of ["rain-balance", "rain-allowance", "workflow-action-status"]) {
     observer.observe(el(id), { childList: true, subtree: true, characterData: true });
   }
-  window.addEventListener("beforeunload", () => observer.disconnect());
+  window.addEventListener("beforeunload", () => { observer.disconnect(); clearInterval(countdownTimer); });
   showRoute();
   return {
     go,

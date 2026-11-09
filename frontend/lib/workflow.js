@@ -54,7 +54,8 @@ export function attachWorkflow(options) {
     return messages[action];
   }
 
-  const guide = attachStepGuide();
+  // When a local countdown reaches zero, re-read both chains so refund eligibility comes from a real block, not the device clock.
+  const guide = attachStepGuide({ onDeadlinePassed: () => { void refresh(); } });
   // Save the most recently read double-linked state; null indicates that there are no available query results at present.
   let snapshot = null;
   
@@ -155,6 +156,12 @@ export function attachWorkflow(options) {
     catch { return { address: null, chainId: NaN }; }
   }
 
+  // AI-assisted: records read for the current Inspect IDs, even when no complete public setup exists. Used for the status strip only.
+  function lookupSnapshot() {
+    try { return snapshot && snapshotSignature === JSON.stringify(options.readLookup()) ? snapshot : null; }
+    catch { return null; }
+  }
+
   function draftMatches(setup) {
     const draft = options.getDraft();
     return options.isBackupVerified() && draft && draft.rainSwapId === setup.rainSwapId &&
@@ -187,13 +194,13 @@ export function attachWorkflow(options) {
     
     try { setup = getSetup(); }
     catch (error) {
-      guide.update({ setup: null, snapshot: null, state: null, backupVerified: false });
+      guide.update({ setup: null, snapshot: null, lookupSnapshot: lookupSnapshot(), state: null, backupVerified: false });
       ui.status.textContent = "Set up the exchange";
       ui.details.textContent = "Alice: generate a draft, download its private backup, and select that file to verify it. Bob: import the public setup. " + safeErrorMessage(error);
       return;
     }
     if (!snapshot || snapshotSignature !== JSON.stringify(options.readLookup())) {
-      guide.update({ setup, snapshot: null, state: null, backupVerified: draftMatches(setup) });
+      guide.update({ setup, snapshot: null, lookupSnapshot: null, state: null, backupVerified: draftMatches(setup) });
       ui.status.textContent = "Read the selected exchange";
       ui.details.textContent = "Click Read Both Locks to obtain fresh chain records. Public setup is saved; the private secret is not stored in the browser.";
       return;
@@ -208,7 +215,7 @@ export function attachWorkflow(options) {
       ui.refreshStatus.textContent = "Deployment warning: " + snapshot.deploymentWarnings.join(" ");
     }
     const who = actor();
-    guide.update({ setup, snapshot, state, who, busy, backupVerified: draftMatches(setup) });
+    guide.update({ setup, snapshot, lookupSnapshot: null, state, who, busy, backupVerified: draftMatches(setup) });
     const aliceEth = who.address === setup.alice && who.chainId === 421614;
     ui.status.textContent = state.phase;
     ui.status.dataset.phase = state.phase;
