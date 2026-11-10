@@ -64,6 +64,7 @@ export function attachWorkflow(options) {
   let generation = 0;
   // Save the ongoing refresh Promise to prevent multiple automatic refreshes from running simultaneously.
   let refreshing = null;
+  let checkingPending = false;
   // Wait for 500 milliseconds after the input stops before querying
   let timer = null;
   let applying = false;
@@ -150,6 +151,37 @@ export function attachWorkflow(options) {
     throw new Error("The transaction was mined. Read both locks before choosing the next action.");
   }
 
+  // AI-assisted: 刷新后核验本轮领取/退款的旧回执；不能仅凭终态快照清除某笔交易的未决记录。
+  async function reconcilePending() {
+    if (!pending || checkingPending || options.isBusy() || !snapshot) return;
+    const record = pending;
+    let setup;
+    try { setup = getSetup(); } catch { return; }
+    if (record.swapId !== setup[record.asset + "SwapId"]) return;
+    const required = record.action.startsWith("claim-") ? 2n : record.action.startsWith("refund-") ? 3n : null;
+    if (required === null || snapshot[record.asset].swap.status !== required) return;
+    const revision = generation;
+    checkingPending = true;
+    render();
+    ui.actionStatus.textContent = "Checking the previously submitted transaction with Task B...";
+    try {
+      await confirmAction(record.action, setup, record.hash);
+      if (pending !== record || revision !== generation) return;
+      trackTransaction(record.action, record.asset, record.swapId, record.hash, "confirmed");
+      ui.actionStatus.textContent = "Previous " + record.asset.toUpperCase() + " " +
+        (required === 2n ? "claim" : "refund") + " transaction confirmed. Task B verified the receipt, event and on-chain result.";
+    } catch (error) {
+      if (pending === record && revision === generation) {
+        ui.actionStatus.textContent = "The locks were read, but the previous transaction could not be verified. " +
+          safeErrorMessage(error) + " Keep its link; do not submit it again.";
+      }
+    } finally {
+      checkingPending = false;
+      render();
+      if (revision !== generation) void refresh();
+    }
+  }
+
   // Obtain the account and network currently connected to the page
   function actor() {
     try { return { address: getAddress(options.getAccount()), chainId: Number(options.getChainId()) }; }
@@ -171,7 +203,7 @@ export function attachWorkflow(options) {
   // Guide the text and buttons based on transaction busyness, actual on-chain status, current identity, and network updates.
   function render() {
     const busy = options.isBusy();
-    const reading = refreshing !== null;
+    const reading = refreshing !== null || checkingPending;
     el("private-draft-details").hidden = !options.getDraft();
     el("use-draft-button").disabled = busy || !options.getDraft();
     guide.update({ busy, reading, who: actor() });
@@ -249,7 +281,7 @@ export function attachWorkflow(options) {
   }
 
   async function refresh() {
-    if (options.isBusy()) return;
+    if (options.isBusy() || checkingPending) return;
     if (refreshing) return refreshing;
     const currentGeneration = generation;
     let lookup;
@@ -287,6 +319,7 @@ export function attachWorkflow(options) {
         render();
         if (failure && currentGeneration === generation) ui.details.textContent = failure + " Use Read Both Locks to retry.";
         if (currentGeneration !== generation) void refresh();
+        else if (!failure) void reconcilePending();
       }
     })();
     render();
@@ -353,7 +386,7 @@ export function attachWorkflow(options) {
   // A single wallet path serves approval, both locks, both claims and both refunds.
   // No contract-state decision or event verification is reimplemented in this browser controller.
   async function runAction(action) {
-    if (options.isBusy()) return;
+    if (options.isBusy() || checkingPending) return;
     const display = options.actionDisplays?.[action] || { status: ui.actionStatus, link: ui.actionLink };
     if (!window.ethereum) {
       display.status.textContent = "Enable MetaMask first.";
@@ -457,7 +490,7 @@ export function attachWorkflow(options) {
   });
   // Before creating a new switch, make sure that the old switch has no pending Active lock
   el("new-swap-button").addEventListener("click", () => {
-    if (options.isBusy() || refreshing) { ui.publicStatus.textContent = "Wait for the current read or transaction to finish."; return; }
+    if (options.isBusy() || refreshing || checkingPending) { ui.publicStatus.textContent = "Wait for the current read or transaction to finish."; return; }
     
     if (!snapshot && options.getDraft()) { ui.publicStatus.textContent = "Read both locks before replacing the current private draft."; return; }
     if (snapshot && [snapshot.rain.swap, snapshot.eth.swap].some((swap) => swap.status === 1n)) {

@@ -122,7 +122,7 @@ button, input { max-width: 100%; }
 /* AI-assisted: on-chain state strip rendered as a two-node bridge. Lane animation only mirrors the status
    already read from the contracts (dashed = nothing to show, flowing dots = Active, solid beam = Claimed,
    reversed dots = Refunded). lib/bridge.js sets the data-*-flow attributes; nothing here changes behaviour. */
-.lock-status-strip { position: relative; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-top: 3px solid var(--green); padding: 16px 18px 14px; margin-bottom: 22px; }
+.lock-status-strip { container: lock-status / inline-size; position: relative; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-top: 3px solid var(--green); padding: 16px 18px 14px; margin-bottom: 22px; }
 .lock-status-strip::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 55%, rgba(95, 212, 192, .07), transparent 60%); }
 .lock-status-strip > p:not(.eyebrow), .lock-status-strip > a { position: relative; color: var(--muted); font-size: 11px; margin: 0; }
 .bridge { position: relative; display: grid; grid-template-columns: 250px minmax(0, 1fr) 250px; gap: 18px; align-items: stretch; margin: 12px 0 14px; }
@@ -258,7 +258,6 @@ code, p, a, dd, span { overflow-wrap: anywhere; }
   .page-nav a { padding: 10px; }
   .setup-options { grid-template-columns: 1fr; gap: 20px; }
   .public-option { border-left: 0; border-top: 1px solid var(--line); padding: 19px 0 0; }
-  .bridge { grid-template-columns: 210px minmax(0, 1fr) 210px; gap: 12px; }
   .bridge-node { padding-right: 62px; }
   .bridge-amount { font-size: 19px; }
 }
@@ -275,8 +274,6 @@ code, p, a, dd, span { overflow-wrap: anywhere; }
   .setup-options { grid-template-columns: 1fr 1fr; gap: 24px; }
   .public-option { border-top: 0; border-left: 1px solid var(--line); padding: 0 0 0 23px; }
   h2 { font-size: 33px; }
-  .bridge { grid-template-columns: 1fr 1fr; }
-  .bridge-lanes { grid-column: 1 / -1; grid-row: 1; min-height: 110px; }
 }
 @media (max-width: 540px) {
   .app-shell { padding: 0 16px; }
@@ -320,10 +317,17 @@ code, p, a, dd, span { overflow-wrap: anywhere; }
   .step-footer { align-items: stretch; }
   .step-footer button { flex: 1; font-size: 11px; }
   .site-footer { margin-top: 26px; }
-  .bridge { grid-template-columns: 1fr; gap: 10px; }
-  .bridge-lanes { grid-column: auto; grid-row: auto; min-height: 90px; }
   .bridge-node { padding: 14px 60px 12px 14px; }
   .bridge-chip { width: 34px; height: 34px; font-size: 17px; }
+}
+/* 按状态条实际宽度换行；侧栏/浏览器缩放不能把中间通道挤成一列字。 */
+@container lock-status (max-width: 740px) {
+  .bridge { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .bridge-lanes { grid-column: 1 / -1; grid-row: 2; min-height: 100px; }
+}
+@container lock-status (max-width: 460px) {
+  .bridge { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .bridge-lanes { grid-column: auto; grid-row: auto; min-height: 90px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
