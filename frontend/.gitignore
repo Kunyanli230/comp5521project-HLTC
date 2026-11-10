@@ -1,0 +1,8 @@
+node_modules/
+dist/
+test-results/
+*.local
+htlc-private-*.json
+.env
+.env.*
+!.env.example

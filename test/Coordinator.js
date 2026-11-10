@@ -33,6 +33,19 @@ describe("B1/B2 coordinator guards", function () {
     expect(() => assertTimelocks(1000, 800, 400, 0, options)).to.throw("gap");
     expect(() => assertTimelocks(1000, 800, 790, 799, options)).to.throw("window");
   });
+  it("preserves CLI token precision while parsing browser decimal terms", async function () {
+    const { expectedLock, parseSwapTerms } = await import("../shared/swapInputs.mjs");
+    const terms = { alice: env.RAIN_ADDRESS, bob: "0x" + "44".repeat(20),
+      rainToken: "0x" + "55".repeat(20), hashlock: ethers.id("hash"),
+      rainAmount: "1.25", ethAmount: "0.001" };
+    expect(expectedLock(terms, "rain").amount).to.equal(ethers.parseUnits("1.25", 18));
+    const parsed = parseSwapTerms(terms);
+    expect(parsed.ethAmount).to.equal(ethers.parseEther("0.001"));
+    const cliTerms = { ...terms, rainAmount: 1250000n, ethAmount: parsed.ethAmount };
+    expect(expectedLock(cliTerms, "rain").amount).to.equal(1250000n);
+    expect(expectedLock(cliTerms, "eth").amount).to.equal(parsed.ethAmount);
+    expect(() => parseSwapTerms({ ...terms, rainAmount: "0" })).to.throw("greater than zero");
+  });
   it("waits for configured confirmations, journals pending first and rejects failure", async function () {
     const chain = { key: "unitTest", chainId: 31337, explorer: null, confirmations: 3, timeout: 1234 };
     const hash = ethers.id("tx");

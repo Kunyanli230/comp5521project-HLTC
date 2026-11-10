@@ -1,5 +1,6 @@
 node_modules/
-# Actual test configuration is shared in this private repository by owner request.
+# Keep local account keys and RPC credentials out of future commits.
+.env
 .env.*
 !.env.example
 cache/
@@ -9,3 +10,5 @@ typechain-types/
 ignition/deployments/
 .local/
 runs/
+/.vscode/
+htlc-private-*.json

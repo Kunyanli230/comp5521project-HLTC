@@ -73,6 +73,28 @@ async function readSide(chain, swapId, minWindow) {
     blockNumber: block.number, network: chain.name };
 }
 
+// CLI 与网页共用同一条“已确认 ETH 领取事件 → 秘密”的恢复路径。
+// 先核验回执、规范链区块及确认数，再接受事件中的 preimage。
+async function readConfirmedClaim(chain, swapId, transactionHash) {
+  if (!ethers.isHexString(transactionHash, 32)) throw new Error("Enter the public ETH claim transaction hash");
+  const receipt = await chain.provider.getTransactionReceipt(transactionHash);
+  if (!receipt || receipt.status !== 1) throw new Error("The ETH claim transaction is not mined successfully yet");
+  const [head, block] = await Promise.all([
+    chain.provider.getBlock("latest"), chain.provider.getBlock(receipt.blockNumber),
+  ]);
+  if (!head || !block || block.hash !== receipt.blockHash || head.number < receipt.blockNumber) {
+    throw new Error("The ETH claim receipt is not on the canonical chain");
+  }
+  const confirmations = head.number - receipt.blockNumber + 1;
+  if (confirmations < chain.confirmations) throw new Error("Wait for the required ETH claim confirmations");
+  const preimage = eventFrom(receipt, chain.htlc, "SwapClaimed", swapId).preimage;
+  const swap = await chain.htlc.swaps(swapId, { blockTag: head.number });
+  if (swap.status !== 2n || ethers.keccak256(preimage) !== swap.hashlock) {
+    throw new Error("The confirmed event does not match the claimed ETH lock");
+  }
+  return { swapId, transactionHash, confirmations, blockHash: receipt.blockHash, preimage, swap };
+}
+
 // AI-assisted segmented event query; the secret is taken only from on-chain events.
 async function findRevealedPreimage(chain, swapId, fromBlock) {
   if (!Number.isSafeInteger(fromBlock) || fromBlock < 0) throw new Error("A valid Lock ETH blockNumber is required");
@@ -108,7 +130,8 @@ async function pickSigner(chain, swap) {
   throw new Error(`${chain.name}: neither configured account is this lock's sender`);
 }
 
-async function refundIfAllowed(chain, swapId, minWindow, journal) {
+// CLI 和 HTTP 服务共用退款前置条件；只读链，不选择私钥、不发送交易。
+async function prepareRefund(chain, swapId, minWindow) {
   const view = await readSide(chain, swapId, minWindow);
   if (view.state !== "REFUNDABLE") {
     const reasons = {
@@ -120,6 +143,13 @@ async function refundIfAllowed(chain, swapId, minWindow, journal) {
     };
     return { refunded: false, reason: reasons[view.state] };
   }
+  return { refundable: true, sender: view.swap.sender, view };
+}
+
+async function refundIfAllowed(chain, swapId, minWindow, journal) {
+  const prepared = await prepareRefund(chain, swapId, minWindow);
+  if (!prepared.refundable) return prepared;
+  const view = prepared.view;
   const { role, signer } = await pickSigner(chain, view.swap);
   const contract = chain.htlc.connect(signer);
   try { await contract.refund.staticCall(swapId); }
@@ -180,4 +210,4 @@ function makeJournal(runFile, run) {
   };
 }
 
-module.exports = { classify, advise, readSide, findRevealedPreimage, pickSigner, refundIfAllowed, loadRun, makeJournal };
+module.exports = { classify, advise, readSide, readConfirmedClaim, findRevealedPreimage, pickSigner, prepareRefund, refundIfAllowed, loadRun, makeJournal };

@@ -2,6 +2,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { ethers } = require("ethers");
+const { decodeFirstSync } = require("cbor");
 const networks = require("../../config/networks");
 require("dotenv").config({ path: path.join(__dirname, "../../.env"), quiet: true });
 const ROOT = path.resolve(__dirname, "../..");
@@ -46,12 +47,69 @@ function errorMessage(error) {
 async function assertChain(chain) {
   if (Number(await chain.provider.send("eth_chainId", [])) !== chain.chainId) throw new Error(`${chain.name}: unexpected RPC chain ID`);
 }
+
+// AI-assisted: 按 Solidity 尾部两字节长度定位并完整解码 CBOR，不按固定字符数截断。
+// 只识别本项目使用的发布版 solc 元数据；未知字段/格式保守拒绝，不能用“忽略尾部”放行。
+function splitSolidityMetadata(code) {
+  const bytes = Buffer.from(code.slice(2), "hex");
+  if (bytes.length < 4) throw new Error("missing Solidity metadata trailer");
+  const length = bytes.readUInt16BE(bytes.length - 2);
+  const start = bytes.length - 2 - length;
+  if (length === 0 || start < 1 || bytes[start - 1] !== 0xfe) {
+    throw new Error("invalid metadata length or missing compiler separator");
+  }
+  const encoded = bytes.subarray(start, bytes.length - 2);
+  if ((encoded[0] >> 5) !== 5 || (encoded[0] & 31) === 31) throw new Error("expected a definite CBOR map");
+  // 默认要求整段输入耗尽；拒绝重复键、尾随数据和过深嵌套。
+  const metadata = decodeFirstSync(encoded, { required: true, preventDuplicateKeys: true, max_depth: 2 });
+  const keys = Object.keys(metadata).sort();
+  const hashKeys = keys.filter((key) => ["ipfs", "bzzr0", "bzzr1"].includes(key));
+  if (Object.getPrototypeOf(metadata) !== Object.prototype ||
+      keys.some((key) => !["ipfs", "bzzr0", "bzzr1", "solc", "experimental"].includes(key)) ||
+      hashKeys.length !== 1 || !Buffer.isBuffer(metadata.solc) || metadata.solc.length !== 3 ||
+      (Object.hasOwn(metadata, "experimental") && typeof metadata.experimental !== "boolean")) {
+    throw new Error("unsupported Solidity metadata fields or compiler marker");
+  }
+  const hash = metadata[hashKeys[0]];
+  if (!Buffer.isBuffer(hash) || (hashKeys[0] === "ipfs"
+    ? hash.length !== 34 || hash[0] !== 0x12 || hash[1] !== 0x20
+    : hash.length !== 32)) throw new Error("invalid metadata hash encoding");
+  return { body: bytes.subarray(0, start),
+    markers: JSON.stringify([keys, metadata.solc.toString("hex"), metadata.experimental]) };
+}
+
+// AI-assisted: 完整匹配优先；只允许元数据哈希变化，不宣称源码/编译配置完全相同。
+function compareBytecode(actual, expected) {
+  if (![actual, expected].every((value) => typeof value === "string" && /^0x(?:[0-9a-fA-F]{2})+$/.test(value))) {
+    return { match: "mismatch", reason: "invalid or empty runtime bytecode" };
+  }
+  if (actual.toLowerCase() === expected.toLowerCase()) return { match: "exact" };
+  try {
+    const deployed = splitSolidityMetadata(actual);
+    const compiled = splitSolidityMetadata(expected);
+    if (!deployed.body.equals(compiled.body)) return { match: "mismatch", reason: "executable bytecode differs" };
+    if (deployed.markers !== compiled.markers) return { match: "mismatch", reason: "compiler or metadata markers differ" };
+    return { match: "metadata-only" };
+  } catch {
+    return { match: "mismatch", reason: "metadata difference could not be reliably decoded" };
+  }
+}
+
 async function assertCode(chain, address, contractName) {
   const code = await chain.provider.getCode(address);
   if (code === "0x") throw new Error(`${chain.name}: no contract at configured address`);
-  if (contractName && code.toLowerCase() !== artifact(contractName).deployedBytecode.toLowerCase()) {
-    throw new Error(`${chain.name}: bytecode differs from ${contractName}; rebuild/redeploy or review the Task A ABI`);
+  if (!contractName) return { match: "present" };
+  const result = compareBytecode(code, artifact(contractName).deployedBytecode);
+  if (result.match === "mismatch") {
+    const error = new Error(`${chain.name}: ${contractName} deployment check failed: ${result.reason}; review the Task A build and deployment`);
+    error.code = "HTLC_CODE_MISMATCH";
+    throw error;
   }
+  if (result.match === "metadata-only") {
+    result.warning = `${chain.name}: executable bytecode matches ${contractName}; compiler metadata differs. Full source/build identity is not verified.`;
+    console.warn(result.warning);
+  }
+  return result;
 }
 async function contexts(env = process.env, deployed = true) {
   const options = settings(env);
@@ -105,4 +163,4 @@ function eventFrom(receipt, contract, name, swapId) {
   if (found.length !== 1) throw new Error(`Expected one ${name} event for the specified swap`);
   return found[0].args;
 }
-module.exports = { ROOT, integer, settings, artifact, writeJson, readJson, errorMessage, assertChain, assertCode, contexts, close, confirmed, eventFrom, txUrl };
+module.exports = { ROOT, integer, settings, artifact, writeJson, readJson, errorMessage, assertChain, assertCode, compareBytecode, contexts, close, confirmed, eventFrom, txUrl };
