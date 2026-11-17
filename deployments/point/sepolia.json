@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "mode": "point-lock",
+  "network": "sepolia",
+  "chainId": 11155111,
+  "contract": "ERC20PointHTLC",
+  "rpcEnv": "SEPOLIA_RPC_URL",
+  "explorer": "https://sepolia.etherscan.io",
+  "deployer": "0x6BdC4C6fC34651E19aA35AFcd568BB8baF77Fa79",
+  "accounts": {
+    "alice": "0x6BdC4C6fC34651E19aA35AFcd568BB8baF77Fa79",
+    "bob": "0x8466E5f6A23977baD8A46Af21d81525048474eE8"
+  },
+  "rainAddress": "0xf49d4F8A697C09D4daf942938A2C4cb5593164dC",
+  "status": "confirmed",
+  "createdAt": "2026-11-17T04:48:46.593Z",
+  "address": "0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd",
+  "transaction": {
+    "label": "Deploy ERC20PointHTLC",
+    "network": "sepolia",
+    "chainId": 11155111,
+    "hash": "0x7c186ebeccfb36e1199ef95558bf328fc34871e13cbc1456b22ba9951ff67818",
+    "url": "https://sepolia.etherscan.io/tx/0x7c186ebeccfb36e1199ef95558bf328fc34871e13cbc1456b22ba9951ff67818",
+    "status": "confirmed",
+    "blockNumber": 12152137,
+    "confirmations": 2
+  }
+}

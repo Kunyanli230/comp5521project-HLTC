@@ -117,6 +117,21 @@ npm run swap:success
 
 若中途失败，脚本退出并将运行标记为 `incomplete`。先检查记录中的 pending/confirmed 交易及链上状态；超时不代表交易没有上链。保留秘密并使用固定接口按状态继续领取，或到期后由原发送人调用 `refund(swapId)`。本次没有自动恢复或重跑续接功能；直接重跑会创建一组新 ID。
 
+## 加分题：点锁交换
+
+2026-11-17（UTC），Alice 与 Bob 用两把不同的点锁完成了 10 MST 与 0.001 ETH 的测试网交换。复跑前确认 Alice 的 MST 余额能覆盖 `RAIN_AMOUNT`，本次取值为 `10`。[协议、隐私边界与失败用例](docs/CHALLENGE.md) · [公开交换报告](deployments/point/successful-swap-2026-11-17.json)
+
+| 网络 | 点锁合约 |
+|---|---|
+| Ethereum Sepolia | ERC20PointHTLC · [`0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd`](https://sepolia.etherscan.io/address/0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd) |
+| Arbitrum Sepolia | ETHPointHTLC · [`0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C`](https://sepolia.arbiscan.io/address/0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C) |
+
+| 命令 | 用途 |
+|---|---|
+| `npm run test:point` | 在两条本地链验证交换、拒绝、退款及部署记录复用。 |
+| `npm run deploy:point` | 在配置的两条测试网上部署或复用点锁合约，记录写入 `deployments/point/`。 |
+| `npm run swap:point` | 绑定上述合约，发起一次新的点锁交换。 |
+
 ## B3 / B4：状态查看、超时退款与演示准备
 
 首次运行先 `npm ci`、`npm run compile`。状态和退款入口使用 `node`，参数由 `npm run ... --` 传入。以下命令在仓库根目录执行，`<runId>` 替换为运行记录 ID，也可使用 JSON 文件路径。
@@ -223,4 +238,4 @@ npm run dev
 
 原单链合约保留用于历史参考，教学脚本移至 `scripts/legacy/`，说明见 [docs/LEGACY.md](docs/LEGACY.md)。新流程使用两条链、独立合约、长短期限、确认与锁仓核验、链上事件传递秘密和公开结果记录。
 
-AI 辅助文件与函数清单见 [docs/AI_ASSISTANCE.md](docs/AI_ASSISTANCE.md)，供实际审查和报告披露使用。本仓库此次未实现隐私扩展，也未声称完成其他组员负责的项目组件。
+AI 辅助文件与函数清单见 [docs/AI_ASSISTANCE.md](docs/AI_ASSISTANCE.md)，供实际审查和报告披露使用。基础版与加分题使用各自的合约及部署记录。
