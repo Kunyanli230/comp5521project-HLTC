@@ -46,22 +46,6 @@
       <p id="status" role="status">Connect your wallet to get started.</p>
     </aside>
 
-    <section id="workflow-guide" class="progress-panel panel" aria-label="Exchange progress">
-      <div class="progress-heading">
-        <div>
-          <p class="eyebrow">EXCHANGE OVERVIEW</p>
-          <p id="exchange-summary">Prepare the exchange or load an existing setup.</p>
-        </div>
-        <button id="read-both-locks-button" type="button" class="secondary">Read Both Locks</button>
-      </div>
-      <p id="workflow-status" class="notice" role="status">Set up the exchange</p>
-      <p id="workflow-details">Alice prepares a private backup. Bob can import the public setup.</p>
-      <button id="guide-resume" type="button">Go to the recommended step</button>
-      <p id="workflow-refresh-status" class="panel-footnote" role="status">Recommendations follow the latest completed chain read.</p>
-      <p id="workflow-action-status" role="status">No new swap action submitted.</p>
-      <a id="workflow-action-link" target="_blank" rel="noopener noreferrer" hidden>View action transaction</a>
-    </section>
-
     <aside class="share-tools panel">
       <p class="eyebrow">CONTINUE ON ANOTHER DEVICE</p>
       <button id="export-public-button" type="button" class="secondary">Export Public Setup</button>
@@ -83,7 +67,10 @@
     <main id="main-content">
       <div class="page-kicker"><span id="page-step">STEP 01 / 06</span><span id="page-mode">GUIDED SWAP</span></div>
       <section id="lock-bridge" class="lock-status-strip" aria-label="Current on-chain lock states" data-rain-flow="unchecked" data-eth-flow="unchecked">
-        <p class="eyebrow">CURRENT ON-CHAIN STATE</p>
+        <div class="state-heading">
+          <p class="eyebrow">CURRENT ON-CHAIN STATE</p>
+          <button id="read-both-locks-button" type="button" class="secondary">Read Both Locks</button>
+        </div>
         <div class="bridge">
           <div class="bridge-node bridge-node-rain">
             <span class="bridge-chip" aria-hidden="true">R</span>
@@ -110,8 +97,19 @@
           </div>
         </div>
         <p id="current-locks-read-status">Click Read Both Locks to check both networks.</p>
+        <p id="workflow-refresh-status" role="status" hidden></p>
         <a href="#/inspect">View lock IDs and details</a>
       </section>
+      <div id="deployment-error" class="safety-notice" role="alert" hidden></div>
+      <div id="workflow-notice" class="safety-notice" role="status" hidden>
+        <strong id="workflow-status"></strong>
+        <p id="workflow-details"></p>
+      </div>
+      <details id="recent-transaction" class="recent-transaction" hidden>
+        <summary>Most recent transaction</summary>
+        <p id="workflow-action-status" role="status">No new swap action submitted.</p>
+        <a id="workflow-action-link" target="_blank" rel="noopener noreferrer" hidden>View action transaction</a>
+      </details>
       <article data-view="prepare" aria-labelledby="prepare-title">
         <h2 id="prepare-title" tabindex="-1">Prepare your exchange</h2>
         <p class="page-description">Agree on the exchange, then secure Alice's secret before either asset is locked.</p>
@@ -222,6 +220,8 @@
           <dl id="counterparty-summary" class="record-summary"><dt>Rain lock</dt><dd>Not checked.</dd></dl>
           <p>The app independently checks Rain before requesting this transaction. Bob needs the agreed ETH amount plus gas on Arbitrum Sepolia.</p>
           <button id="lock-eth-button" type="button" disabled>Lock ETH (Bob)</button>
+          <p id="eth-lock-tx-status" role="status">No ETH lock transaction submitted.</p>
+          <a id="eth-lock-tx-link" target="_blank" rel="noopener noreferrer" hidden>View ETH lock transaction</a>
           <p>Review the ETH amount in MetaMask and confirm. Wait for the verified result above, then continue to step 4.</p>
         </section>
       </article>
@@ -237,6 +237,8 @@
           <p><a href="#/prepare">Restore or verify Alice's private backup</a></p>
           <p><strong>Claiming ETH reveals the secret on-chain.</strong> Bob can then read it from the confirmed event and claim Rain.</p>
           <button id="claim-eth-button" type="button" disabled>Claim ETH (Alice)</button>
+          <p id="eth-claim-tx-status" role="status">No ETH claim transaction submitted.</p>
+          <a id="eth-claim-tx-link" target="_blank" rel="noopener noreferrer" hidden>View ETH claim transaction</a>
           <p>Confirm in MetaMask and wait for the verified result. The public ETH claim transaction hash will be filled in for step 5.</p>
         </section>
       </article>
@@ -252,6 +254,8 @@
           <p>This is filled automatically in the same browser. In another browser, paste Alice's ETH claim transaction hash or import her updated public setup.</p>
           <p>The app checks the confirmed event and reads the secret from it. Bob does not need Alice's private backup.</p>
           <button id="claim-rain-button" type="button" disabled>Claim Rain from ETH Event</button>
+          <p id="rain-claim-tx-status" role="status">No Rain claim transaction submitted.</p>
+          <a id="rain-claim-tx-link" target="_blank" rel="noopener noreferrer" hidden>View Rain claim transaction</a>
           <p>Confirm in MetaMask and wait for the result. When both locks are Claimed, the exchange is complete.</p>
         </section>
       </article>
@@ -271,10 +275,7 @@
       <article data-view="inspect" aria-labelledby="inspect-title" hidden>
         <h2 id="inspect-title" tabindex="-1">Inspect the on-chain locks</h2>
         <p>Enter both swap IDs, then click Read Both Locks above. These read-only queries work without switching MetaMask. Agreed hashlocks and terms are needed for parameter verification, not for reading the records.</p>
-        <div class="inspect-shortcuts">
-          <button id="load-example-button" type="button" class="secondary">Load example swap (2026-10-25)</button>
-          <span id="inspect-shortcut-note" role="status">Fills both swap IDs and the hashlock from the recorded successful testnet exchange. A link such as <code>#/inspect?rain=0x…&amp;eth=0x…&amp;hashlock=0x…</code> does the same.</span>
-        </div>
+        <p id="inspect-shortcut-note" class="subtle-status" role="status" hidden></p>
         <section>
           <h3>Rain · Ethereum Sepolia</h3>
           <p class="copyable-field"><label for="rain-swap-query">Rain swap ID to look up</label><input id="rain-swap-query" type="text" placeholder="0x..." /><button type="button" class="copy-button" data-copy-target="rain-swap-query" aria-label="Copy Rain swap ID">Copy</button></p>
@@ -299,7 +300,7 @@
           <p>Active-pair state and deadline check:</p><pre id="pair-timelock-check">Not checked.</pre>
           <details><summary>Snapshot blocks, chain times and recorded deadlines</summary><pre id="cross-chain-report">Not checked.</pre></details>
         </section>
-        <details><summary>Configured networks and contracts</summary><dl id="deployment-info" class="record-summary"></dl><p class="subtle-status">The two contracts are queried independently. Wallet signatures authorize each transaction.</p></details>
+        <details><summary>Configured networks and contracts</summary><dl id="deployment-info" class="record-summary"></dl><p id="deployment-warnings" class="subtle-status" hidden></p><p class="subtle-status">The two contracts are queried independently. Wallet signatures authorize each transaction.</p></details>
       </article>
 
       <article data-view="refund" aria-labelledby="refund-title" hidden>

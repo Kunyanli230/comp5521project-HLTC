@@ -15,8 +15,6 @@ import ethHtlcAbi from "../config/abi/ETHHTLC.json";
 // The public deployment result of Task B: It includes the contract address, network and public account, but does not include the wallet private key.
 import sepoliaDeployment from "../deployments/sepolia.json";
 import arbitrumDeployment from "../deployments/arbitrumSepolia.json";
-// Public record of the 2026-10-25 successful testnet exchange: swap IDs and hashlock only, used to prefill Inspect for demos.
-import exampleSwap from "../deployments/successful-swap-2026-10-25.json";
 import { attachWorkflow } from "./lib/workflow.js";
 import { formatDeadline, fillRecord, attachCopyHandler } from "./lib/display.js";
 // Use the period and status judgment of B through the front-end adaptation function; The Node.js/.env runtime of B does not enter the browser.
@@ -203,7 +201,6 @@ async function refreshWalletState() {
     }
 
     chainIdText.textContent = Number.parseInt(chainId, 16).toString();
-    // AI-assisted: network switching only makes sense once an account is connected.
     setNetworkButtons(accounts.length > 0);
 
     if (accounts.length === 0) {
@@ -331,7 +328,6 @@ sepoliaButton.addEventListener("click", () => {
 arbitrumButton.addEventListener("click", () => {
   switchNetwork(421614);
 });
-// AI-assisted: refresh wallet information when accounts or networks change.
 if (window.ethereum) {
   window.ethereum.on("accountsChanged", refreshWalletState);
   window.ethereum.on("chainChanged", refreshWalletState);
@@ -382,7 +378,6 @@ function generateSwapDraft() {
 
 generateSwapButton.addEventListener("click", generateSwapDraft);
 
-// Ai assistent: Download the current swap private secret backup as JSON.
 function downloadSecretBackup() {
   if (swapDraft === null) {
     swapSetupStatusText.textContent = "Generate a swap draft first.";
@@ -398,7 +393,6 @@ function downloadSecretBackup() {
     rainSwapId: swapDraft.rainSwapId,
     ethSwapId: swapDraft.ethSwapId
   };
-  // AI-assisted: 复用 JSON 下载实现；私密备份仍只下载给 Alice，不写入公开设置或浏览器存储。
   downloadJson(backup, "htlc-private-" + swapDraft.rainSwapId + ".json");
 
   swapSetupStatusText.textContent =
@@ -407,7 +401,6 @@ function downloadSecretBackup() {
 
 backupSecretButton.addEventListener("click", downloadSecretBackup);
 
-// Ai assistent: validate a local private backup before restoring the swap draft.
 async function restoreSwapDraft() {
   // Read the file selected by the user
   const file = secretBackupInput.files[0];
@@ -500,7 +493,6 @@ function readSwapTerms() {
   });
 }
 
-// Ai assistent: preview the validated terms or display an input error.
 checkTermsButton.addEventListener("click", () => {
   try {
     const terms = readSwapTerms();
@@ -532,7 +524,6 @@ const HASHLOCK_SKIPPED = "Skipped: no agreed hashlock entered. Enter it to compa
 
 function checkLockParameters(swap, asset) {
   if (swap.status === 0n) return "No on-chain lock exists for this swap ID.";
-  // AI-assisted: a blank hashlock is an optional field left empty, not a failure.
   if (!(asset === "rain" ? expectedRainHashlockInput : expectedEthHashlockInput).value.trim()) return HASHLOCK_SKIPPED;
   try {
     const mismatches = fieldMismatches(swap, readExpectedLockFields(asset));
@@ -618,7 +609,6 @@ function readTimelockSettings() {
   return validateDurations(rainLockSecondsInput.value.trim(), ethLockSecondsInput.value.trim());
 }
 
-// Ai assistent: preview the duration checks without creating any lock.
 checkTimelocksButton.addEventListener("click", () => {
   try {
     const settings = readTimelockSettings();
@@ -697,7 +687,6 @@ lockRainButton.addEventListener("click", () => { void workflowUI.runAction("lock
 refundRainButton.addEventListener("click", () => { void workflowUI.runAction("refund-rain"); });
 refundEthButton.addEventListener("click", () => { void workflowUI.runAction("refund-eth"); });
 
-// AI-assisted: 私密备份和公开设置共用下载动作，由调用者分别选择文件内容；不写 localStorage。
 function downloadJson(value, filename) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }));
   const link = document.createElement("a");
@@ -759,8 +748,6 @@ function applyPublicFields(values) {
     }
   }
 }
-
-// AI-assisted: each Inspect card reports only its own swap-ID problem instead of repeating the first failure everywhere.
 function lookupFieldMessage(input, label) {
   const value = input.value.trim();
   if (!value) return "Enter the " + label + " above to look it up.";
@@ -772,7 +759,6 @@ function lookupFieldMessage(input, label) {
   }
 }
 
-// ai assistent: Display existing snapshots
 function renderWorkflowSnapshot(snapshot, message = "Not checked.") {
   if (!snapshot) {
     const rainIssue = lookupFieldMessage(rainSwapQueryInput, "Rain swap ID");
@@ -814,18 +800,12 @@ function renderWorkflowSnapshot(snapshot, message = "Not checked.") {
     : "Parameters match at these snapshot blocks. State, deadlines and caller authorization are checked separately.";
 }
 
-// AI-assisted: demo shortcuts for Inspect. Only public IDs and the hashlock are filled; no secret is involved.
 function applyInspectLookup(values, note) {
   applyPublicFields(values);
-  document.querySelector("#inspect-shortcut-note").textContent = note;
+  const status = document.querySelector("#inspect-shortcut-note");
+  status.textContent = note;
+  status.hidden = false;
 }
-
-document.querySelector("#load-example-button").addEventListener("click", () => {
-  applyInspectLookup(
-    { rainSwapId: exampleSwap.rain.swapId, ethSwapId: exampleSwap.eth.swapId, hashlock: exampleSwap.hashlock },
-    "Example swap IDs and hashlock loaded from the recorded 2026-10-25 exchange. Both chains are being read."
-  );
-});
 
 // #/inspect?rain=0x…&eth=0x…&hashlock=0x… prefills the lookup; the route itself is handled by the step guide.
 let appliedHashQuery = "";
@@ -849,6 +829,9 @@ workflowUI = attachWorkflow({
   actionDisplays: {
     "approve-rain": { status: approvalStatusText, link: approvalTxLink },
     "lock-rain": { status: rainLockTxStatusText, link: rainLockTxLink },
+    "lock-eth": { status: document.querySelector("#eth-lock-tx-status"), link: document.querySelector("#eth-lock-tx-link") },
+    "claim-eth": { status: document.querySelector("#eth-claim-tx-status"), link: document.querySelector("#eth-claim-tx-link") },
+    "claim-rain": { status: document.querySelector("#rain-claim-tx-status"), link: document.querySelector("#rain-claim-tx-link") },
     "refund-rain": { status: refundStatusText, link: refundTxLink },
     "refund-eth": { status: refundStatusText, link: refundTxLink }
   },

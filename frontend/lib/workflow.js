@@ -11,7 +11,7 @@ export function attachWorkflow(options) {
   // Search for page nodes by element ID and save them centrally to the ui for easy updates of text and buttons later.
   const el = (id) => document.querySelector("#" + id);
   const ui = {
-    status: el("workflow-status"), details: el("workflow-details"), readLocks: el("read-both-locks-button"),
+    status: el("workflow-status"), details: el("workflow-details"), notice: el("workflow-notice"), readLocks: el("read-both-locks-button"),
     claimHash: el("eth-claim-tx-hash"), publicFile: el("public-setup-input"),
     lockEth: el("lock-eth-button"), claimEth: el("claim-eth-button"), claimRain: el("claim-rain-button"),
     actionStatus: el("workflow-action-status"), actionLink: el("workflow-action-link"),
@@ -21,7 +21,6 @@ export function attachWorkflow(options) {
     resultNext: el("action-result-next"), resultLink: el("action-result-link")
   };
 
-  // AI-assisted: 一次交易完成后明确告诉用户发生了什么；只有 B 核验成功才显示成功弹窗。
   function showActionResult(title, description, next, tone, url = "") {
     ui.resultTitle.textContent = title;
     ui.resultDescription.textContent = description;
@@ -129,6 +128,7 @@ export function attachWorkflow(options) {
     ui.actionStatus.textContent = state === "unknown"
       ? action + " was submitted. Check this transaction and both locks before retrying."
       : action + ": " + state + ".";
+    el("recent-transaction").open = Boolean(pending);
     if (state === "confirmed") { snapshot = null; snapshotSignature = ""; generation++; }
   
     if (action === "claim-eth") {
@@ -151,7 +151,6 @@ export function attachWorkflow(options) {
     throw new Error("The transaction was mined. Read both locks before choosing the next action.");
   }
 
-  // AI-assisted: 刷新后核验本轮领取/退款的旧回执；不能仅凭终态快照清除某笔交易的未决记录。
   async function reconcilePending() {
     if (!pending || checkingPending || options.isBusy() || !snapshot) return;
     const record = pending;
@@ -187,8 +186,6 @@ export function attachWorkflow(options) {
     try { return { address: getAddress(options.getAccount()), chainId: Number(options.getChainId()) }; }
     catch { return { address: null, chainId: NaN }; }
   }
-
-  // AI-assisted: records read for the current Inspect IDs, even when no complete public setup exists. Used for the status strip only.
   function lookupSnapshot() {
     try { return snapshot && snapshotSignature === JSON.stringify(options.readLookup()) ? snapshot : null; }
     catch { return null; }
@@ -204,6 +201,17 @@ export function attachWorkflow(options) {
   function render() {
     const busy = options.isBusy();
     const reading = refreshing !== null || checkingPending;
+    const deploymentIssues = snapshot?.deploymentIssues || [];
+    const deploymentWarnings = snapshot?.deploymentWarnings || [];
+    el("deployment-error").hidden = deploymentIssues.length === 0;
+    el("deployment-error").textContent = deploymentIssues.length
+      ? "Transactions paused. " + deploymentIssues.join(" ") : "";
+    el("deployment-warnings").hidden = deploymentWarnings.length === 0;
+    el("deployment-warnings").textContent = deploymentWarnings.join(" ");
+    ui.notice.hidden = true;
+    const recent = el("recent-transaction");
+    recent.hidden = ui.actionStatus.textContent === "No new swap action submitted.";
+    if (pending) { recent.hidden = false; recent.open = true; }
     el("private-draft-details").hidden = !options.getDraft();
     el("use-draft-button").disabled = busy || !options.getDraft();
     guide.update({ busy, reading, who: actor() });
@@ -211,11 +219,10 @@ export function attachWorkflow(options) {
       options.refundRainButton, options.refundEthButton];
     
     actionButtons.forEach((button) => { button.disabled = true; });
-    options.approveButton.disabled = busy || reading;
+    options.approveButton.disabled = busy || reading || deploymentIssues.length > 0;
     ui.readLocks.disabled = busy || reading;
-    ui.refreshStatus.textContent = reading
-      ? "Updating chain records. Transaction buttons are paused."
-      : "Recommendations follow the latest completed chain read.";
+    ui.refreshStatus.hidden = !reading;
+    ui.refreshStatus.textContent = reading ? "Updating chain records. Transaction buttons are paused." : "";
     // When the wallet request or transaction confirmation has not been completed, do not allow the user to initiate another operation in parallel.
     if (busy) {
       ui.status.textContent = "Wallet / transaction operation in progress";
@@ -229,23 +236,18 @@ export function attachWorkflow(options) {
       guide.update({ setup: null, snapshot: null, lookupSnapshot: lookupSnapshot(), state: null, backupVerified: false });
       ui.status.textContent = "Set up the exchange";
       ui.details.textContent = "Alice: generate a draft, download its private backup, and select that file to verify it. Bob: import the public setup. " + safeErrorMessage(error);
+      ui.notice.hidden = false;
       return;
     }
     if (!snapshot || snapshotSignature !== JSON.stringify(options.readLookup())) {
       guide.update({ setup, snapshot: null, lookupSnapshot: null, state: null, backupVerified: draftMatches(setup) });
       ui.status.textContent = "Read the selected exchange";
       ui.details.textContent = "Click Read Both Locks to obtain fresh chain records. Public setup is saved; the private secret is not stored in the browser.";
+      ui.notice.hidden = false;
       return;
     }
     const state = snapshot.workflow;
     if (!state) return;
-    if (snapshot.deploymentIssues?.length) {
-      options.approveButton.disabled = true;
-      if (!reading) ui.refreshStatus.textContent = snapshot.deploymentIssues.join(" ");
-    } else if (!reading && snapshot.deploymentWarnings?.length) {
-      // Metadata warnings are for illustration only; The account, network and real on-chain status still determine whether the operation is allowed.
-      ui.refreshStatus.textContent = "Deployment warning: " + snapshot.deploymentWarnings.join(" ");
-    }
     const who = actor();
     guide.update({ setup, snapshot, lookupSnapshot: null, state, who, busy, backupVerified: draftMatches(setup) });
     const aliceEth = who.address === setup.alice && who.chainId === 421614;
@@ -257,8 +259,13 @@ export function attachWorkflow(options) {
     if (state.claimEth && !draftMatches(setup)) ui.details.textContent += " Restore Alice's matching private backup to enable Claim ETH.";
     if (state.claimRain && !ui.claimHash.value.trim()) ui.details.textContent += " Paste the public ETH claim transaction hash below.";
     if (who.address !== setup.alice && who.address !== setup.bob) ui.details.textContent += " Connect the agreed Alice or Bob account to enable its actions.";
+    const finished = ["Completed", "Refunded"].includes(state.phase);
+    const hasNextAction = state.lockRain || state.lockEth || state.claimEth || state.claimRain || state.refundRain || state.refundEth;
+    const needsBackup = (state.lockRain || state.claimEth) && !draftMatches(setup);
+    ui.notice.hidden = (finished || Boolean(hasNextAction)) && !needsBackup;
+    if (state.claimRain && !ui.claimHash.value.trim()) ui.notice.hidden = false;
     // The last successful result can be viewed in the query, but the transaction button must be reopened only after the current read is completed.
-    if (reading) return;
+    if (reading || deploymentIssues.length) return;
     // Alice lock Rain: It must be on Ethereum Sepolia and hold a private draft that has been verified for this exchange.
     options.lockRainButton.disabled = !(state.lockRain && draftMatches(setup) && who.address === setup.alice && who.chainId === 11155111);
     // Bob to lock ETH: You must use a Bob account and switch to Arbitrum Sepolia.
