@@ -91,7 +91,6 @@ export function attachStepGuide(options = {}) {
     fillRecord(el(id), rows);
   }
 
-  // ai assistent: The refund prompt uses the time of the queried block
   function refundMessage(record, network, owner) {
     if (!record) return "Read Both Locks to check this lock.";
     const { state, remaining } = recoveryView(record);
@@ -104,7 +103,6 @@ export function attachStepGuide(options = {}) {
       : "Expired at the last read block. " + owner + " must select " + network + " and request the refund. Original sender: " + record.swap.sender + ".";
   }
 
-  // AI-assisted: Active 锁每秒更新本机时间估算；到零只触发一次读链，不直接开放退款按钮。
   const COUNTDOWN_IDS = {
     rain: ["current-rain-countdown", "rain-lock-countdown", "refund-rain-countdown"],
     eth: ["current-eth-countdown", "eth-lock-countdown", "refund-eth-countdown"]
@@ -151,10 +149,6 @@ export function attachStepGuide(options = {}) {
     for (const [id, chain] of [["sepolia-button", 11155111], ["arbitrum-button", 421614]]) {
       el(id).setAttribute("aria-pressed", String(who.chainId === chain));
     }
-    const finished = state?.phase === "Completed" || state?.phase === "Refunded";
-    const warning = state && !finished && !state.lockRain && !state.lockEth && !state.claimEth && !state.claimRain;
-    el("workflow-guide").dataset.tone = busy ? "pending" : finished ? "success" : warning ? "warning" : "neutral";
-    
     const completedThrough = state?.phase === "Completed" ? 5 : state?.claimRain ? 3
       : state?.claimEth ? 2 : state?.lockEth ? 1 : setup && backupVerified ? 0 : -1;
     for (const link of document.querySelectorAll("#step-navigation a")) {
@@ -188,9 +182,6 @@ export function attachStepGuide(options = {}) {
         ? "Each refund needs the original sender on that asset's network. See the two instructions below."
         : "Alice prepares or restores the private backup. Bob resumes using only the public setup.";
     }
-    el("exchange-summary").textContent = setup
-      ? "Alice sends " + setup.rainAmount + " Rain (MST) ↔ Bob sends " + setup.ethAmount + " ETH"
-      : "Prepare the exchange or load an existing setup.";
     el("public-setup-summary").hidden = !setup;
     displayRecord("public-setup-fields", setup ? [
       ["Alice", setup.alice], ["Bob", setup.bob],
@@ -200,19 +191,15 @@ export function attachStepGuide(options = {}) {
       ["Hashlock", setup.hashlock],
       ...(setup.ethClaimTxHash ? [["Public ETH claim transaction", setup.ethClaimTxHash]] : [])
     ] : []);
-    el("guide-resume").textContent = "Go to: " + LABELS[target];
-    el("guide-resume").disabled = busy;
-    el("guide-resume").hidden = target === route;
     el("export-public-button").disabled = !setup || busy;
 
-    // ai assistent: Provide the next page entry according to the real stage
     const index = STEPS.indexOf(route);
     el("guide-back").disabled = index <= 0;
     const canContinue = !busy && (STEPS.indexOf(target) > index || target === "refund");
     el("guide-next").disabled = !canContinue;
     el("guide-next").textContent = canContinue ? "Continue: " + LABELS[target] : "Complete this step to continue";
     el("guide-next-hint").textContent = busy ? "Wait for the transaction result."
-      : canContinue ? "The latest chain records indicate the next step shown above."
+      : canContinue ? "The latest chain records indicate the next step shown on the button."
         : !setup ? "Load or create a setup, verify Alice's backup and check the terms."
           : !snapshot ? "Click Read Both Locks to check the selected exchange."
             : state?.lockRain && !backupVerified ? "Alice must restore and verify the matching private backup in Prepare."
@@ -228,7 +215,6 @@ export function attachStepGuide(options = {}) {
 
     const rain = snapshot?.rain;
     const eth = snapshot?.eth;
-    // AI-assisted: All steps share the same snapshot, directly showing the real status of both sides.
     // Without a complete public setup (manual Inspect lookup) the strip still follows the records read for the entered IDs.
     const strip = snapshot || context.lookupSnapshot;
     el("current-rain-state").textContent = strip ? STATES[Number(strip.rain.swap.status)] || "Unknown" : "Not checked";
@@ -277,7 +263,6 @@ export function attachStepGuide(options = {}) {
       ["Rain swap ID", rain.swapId], ["ETH swap ID", eth.swapId]
     ] : []);
     el("new-swap-button").disabled = busy || reading || !snapshot || [rain, eth].some((record) => Number(record.swap.status) === 1);
-    el("workflow-action-status").hidden = el("workflow-action-status").textContent === "No new swap action submitted.";
   }
 
   el("skip-to-step").addEventListener("click", (event) => {
@@ -286,7 +271,6 @@ export function attachStepGuide(options = {}) {
     heading?.focus({ preventScroll: true });
     heading?.scrollIntoView({ block: "start" });
   });
-  el("guide-resume").addEventListener("click", () => go(recommended()));
   el("guide-back").addEventListener("click", () => go(STEPS[STEPS.indexOf(route) - 1]));
   el("guide-next").addEventListener("click", () => { if (!el("guide-next").disabled) go(recommended()); });
   window.addEventListener("hashchange", () => showRoute(true));

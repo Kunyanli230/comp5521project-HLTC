@@ -198,7 +198,7 @@ npm run dev
 
 打开 Vite 打印的 Local 地址，连接 MetaMask。英文界面包含钱包/切链、Rain 授权、私密备份验证、公共设置导入导出、两边锁仓、Alice 领取 ETH、Bob 从已确认 ETH 事件取得秘密后领取 Rain，以及到期退款。`Exchange Workflow` 根据链上记录、当前账户和网络引导操作；浏览器只保存当前公开设置及至多一笔未决交易，不保存多交换列表、交易历史或私密 preimage。
 
-具体输入、按钮和预期结果见 [完整操作流程](docs/TASK_C_FLOW.md)，实现与 A/B 对接见 [Task C 说明](docs/TASK_C.md)，前端启动补充见 [frontend/README.md](frontend/README.md)。前端按手动测试网验收流程操作；构建通过不等于完成公网现场演示，公网交易由参与者在 MetaMask 中逐笔确认并保存真实证据。
+实现与 A/B 对接见 [Task C 说明](docs/TASK_C.md)，前端启动补充见 [frontend/README.md](frontend/README.md)。按网页步骤导航进行手动测试网验收；构建通过不等于完成公网现场演示，公网交易由参与者在 MetaMask 中逐笔确认并保存真实证据。
 
 日常操作沿用同一网页主机名和端口，`localhost` 与 `127.0.0.1` 的浏览器存储不同。Alice 刷新后需重新选择匹配私密备份以恢复内存中的秘密；Bob 只需公开设置。当前服务仅监听本机，不是已部署的远程多人服务。
 
