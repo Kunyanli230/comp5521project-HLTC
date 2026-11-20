@@ -91,3 +91,42 @@ Task B3/B4 和 Task C 使用 `swaps(id)` 与各链区块时间：合约层面，
 默认 Rain=7200 秒、ETH=3600 秒、最小差=600 秒、最小领取窗口=120 秒。B CLI 的配置由 `runtime.settings` 读取；网页可填写本轮时长，但 HTTP 的当前默认边界来自 `shared/swapInputs.mjs` 的 DEFAULT_POLICY，不会因为修改 CLI 的 `.env` 边界而自动改变。计划 ETH 时长必须严格大于 120 秒；正常双边 Active 流程要求两边剩余窗口至少 120 秒，并同时检查绝对期限差和剩余窗口差。它们是协调器的测试策略，不是单份 A 合约强制的跨链常量。
 
 确认块数只表示各自网络的确认，Arbitrum 的 L2 确认不代表 L1 最终结算。网络拥塞或 RPC 故障下不保证自动完成；已提交但未核验的交易应先查回执和两边状态，再决定下一步，不能盲目重发。
+
+## 加分题：点锁合约接口
+
+点锁版是另外两份合约，源码在 `contracts/challenge/`，部署记录在 `deployments/point/`，不替换上面的基础版接口。协议和隐私边界见 [CHALLENGE.md](CHALLENGE.md)。
+
+| 资产 | 网络 | 合约 | 发送人 | 接收人 |
+|---|---|---|---|---|
+| Rain ERC20 | Ethereum Sepolia | ERC20PointHTLC | Alice | Bob |
+| 原生 ETH | Arbitrum Sepolia | ETHPointHTLC | Bob | Alice |
+
+```solidity
+// ERC20PointHTLC: Alice 先 approve(ERC20PointHTLC地址, amount)。
+function createERC20Swap(
+    bytes32 swapId, address receiver, address token, uint256 amount,
+    address pointLock, uint256 timelock
+) external;
+
+// ETHPointHTLC: 金额为 msg.value。
+function createETHSwap(
+    bytes32 swapId, address receiver, address pointLock, uint256 timelock
+) external payable;
+
+// 两份合约相同。
+function claim(bytes32 swapId, uint256 secret) external;
+function refund(bytes32 swapId) external;
+function swaps(bytes32 swapId) external view returns (
+    address sender, address receiver, address token, uint256 amount,
+    address pointLock, uint256 timelock, uint8 status
+);
+
+event SwapCreated(bytes32 indexed swapId, address indexed sender, address indexed receiver,
+    address token, uint256 amount, address pointLock, uint256 timelock);
+event SwapClaimed(bytes32 indexed swapId, uint256 secret);
+event SwapRefunded(bytes32 indexed swapId);
+```
+
+与基础版的差别只有锁和领取值：`bytes32 hashlock` 换成 `address pointLock`，`claim` 的第二个参数由 `bytes32` 原像换成 `uint256` 标量，合约要求该标量乘以 secp256k1 基点后导出的地址等于 `pointLock`。错误名、状态值、到期边界与基础版相同。
+
+入口只有 CLI：`npm run deploy:point`、`npm run swap:point`，由 `scripts/lib/pointProtocol.js` 协调。`scripts/status.js`、`scripts/refund.js`、`config/abi/` 和浏览器前端仍只对接基础版合约。

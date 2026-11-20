@@ -15,6 +15,7 @@ Task B：
 
 李家榕：3. 状态查看脚本：分别读两条链，告诉你每笔锁现在是「进行中 / 可以取 / 已取走 / 已过期 / 可以退款」。
 4. 超时退款脚本：交换没完成时，到期后让原主人把钱退回来；没到期不让退，已经取走的也不能再退。
+5. 加分题：点锁合约、链下协议和部署、交换脚本，两条测试网上各用一把不同的锁完成交换，说明见 docs/CHALLENGE.md。
 
 Task C：
 周翮霖：浏览器界面、MetaMask 交互、交换步骤引导、公开设置与私密备份、状态查询和到期退款；通过本机 HTTP 适配复用 B 的协议与恢复函数，连接 A 已部署合约，并进行手动验收。
@@ -116,6 +117,21 @@ npm run swap:success
 公开运行记录位于 `runs/<runId>.json`，包含双链合约、swap ID、hashlock、金额、期限、交易哈希/链接/确认状态及最终状态。秘密文件位于 `.local/secrets/<runId>.json`，并由 Git 忽略。Windows 文件权限由账户 ACL 决定，应保留在个人目录。
 
 若中途失败，脚本退出并将运行标记为 `incomplete`。先检查记录中的 pending/confirmed 交易及链上状态；超时不代表交易没有上链。保留秘密并使用固定接口按状态继续领取，或到期后由原发送人调用 `refund(swapId)`。本次没有自动恢复或重跑续接功能；直接重跑会创建一组新 ID。
+
+## 加分题：点锁交换
+
+2026-11-17（UTC），Alice 与 Bob 用两把不同的点锁完成了 10 MST 与 0.001 ETH 的测试网交换。复跑前确认 Alice 的 MST 余额能覆盖 `RAIN_AMOUNT`，本次取值为 `10`。[协议、隐私边界与失败用例](docs/CHALLENGE.md) · [公开交换报告](deployments/point/successful-swap-2026-11-17.json)
+
+| 网络 | 点锁合约 |
+|---|---|
+| Ethereum Sepolia | ERC20PointHTLC · [`0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd`](https://sepolia.etherscan.io/address/0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd) |
+| Arbitrum Sepolia | ETHPointHTLC · [`0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C`](https://sepolia.arbiscan.io/address/0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C) |
+
+| 命令 | 用途 |
+|---|---|
+| `npm run test:point` | 在两条本地链验证交换、拒绝、退款及部署记录复用。 |
+| `npm run deploy:point` | 在配置的两条测试网上部署或复用点锁合约，记录写入 `deployments/point/`。 |
+| `npm run swap:point` | 绑定上述合约，发起一次新的点锁交换。 |
 
 ## B3 / B4：状态查看、超时退款与演示准备
 
@@ -223,4 +239,4 @@ npm run dev
 
 原单链合约保留用于历史参考，教学脚本移至 `scripts/legacy/`，说明见 [docs/LEGACY.md](docs/LEGACY.md)。新流程使用两条链、独立合约、长短期限、确认与锁仓核验、链上事件传递秘密和公开结果记录。
 
-AI 辅助文件与函数清单见 [docs/AI_ASSISTANCE.md](docs/AI_ASSISTANCE.md)，供实际审查和报告披露使用。本仓库此次未实现隐私扩展，也未声称完成其他组员负责的项目组件。
+AI 辅助文件与函数清单见 [docs/AI_ASSISTANCE.md](docs/AI_ASSISTANCE.md)，供实际审查和报告披露使用。基础版与加分题使用各自的合约及部署记录。

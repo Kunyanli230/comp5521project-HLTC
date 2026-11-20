@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "mode": "point-lock",
+  "runId": "26c334e3cf09dcf5db60927958d8f675",
+  "status": "completed",
+  "alice": "0x6BdC4C6fC34651E19aA35AFcd568BB8baF77Fa79",
+  "bob": "0x8466E5f6A23977baD8A46Af21d81525048474eE8",
+  "startedAt": "2026-11-17T04:49:38.997Z",
+  "rain": {
+    "network": "sepolia",
+    "chainId": 11155111,
+    "contract": "0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd",
+    "token": "0xf49d4F8A697C09D4daf942938A2C4cb5593164dC",
+    "swapId": "0x5f3e8f0ac04216793e2dc1a1d27f022b00a29e7dec4e12ca5eacc3afb52c5825",
+    "amount": "10000000000000000000",
+    "pointLock": "0x8605f390451E0554321bD98229e8f1e6ed1a9B06",
+    "timelock": 1794898200
+  },
+  "eth": {
+    "network": "arbitrumSepolia",
+    "chainId": 421614,
+    "contract": "0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C",
+    "token": "0x0000000000000000000000000000000000000000",
+    "swapId": "0x4a2d4895c657cafe00a7cd1fe12a56200006e8d4bb0970e08399c7688eee5bde",
+    "amount": "1000000000000000",
+    "pointLock": "0x80f50bB4b8736879aeCB28806a22623EA0a4c3F5",
+    "timelock": 1794894629
+  },
+  "transactions": [
+    {
+      "label": "Approve Rain",
+      "network": "sepolia",
+      "chainId": 11155111,
+      "hash": "0x0a0454f448a319a95cc5f2aee6077f097f0a24f2974aecb4c17bbd3cb0bb7cc6",
+      "url": "https://sepolia.etherscan.io/tx/0x0a0454f448a319a95cc5f2aee6077f097f0a24f2974aecb4c17bbd3cb0bb7cc6",
+      "status": "confirmed",
+      "blockNumber": 12152141,
+      "confirmations": 2
+    },
+    {
+      "label": "Lock Rain",
+      "network": "sepolia",
+      "chainId": 11155111,
+      "hash": "0x7cfbc41e9838569284fdb633ff7bd9c8e05c9135e5506a4ba7c30bb75cd82fc5",
+      "url": "https://sepolia.etherscan.io/tx/0x7cfbc41e9838569284fdb633ff7bd9c8e05c9135e5506a4ba7c30bb75cd82fc5",
+      "status": "confirmed",
+      "blockNumber": 12152143,
+      "confirmations": 2
+    },
+    {
+      "label": "Lock ETH",
+      "network": "arbitrumSepolia",
+      "chainId": 421614,
+      "hash": "0x0beaf8aff60012e7608dceb906acc1c183a4709f66561c4696c55fed1e2bc653",
+      "url": "https://sepolia.arbiscan.io/tx/0x0beaf8aff60012e7608dceb906acc1c183a4709f66561c4696c55fed1e2bc653",
+      "status": "confirmed",
+      "blockNumber": 329992541,
+      "confirmations": 2
+    },
+    {
+      "label": "Alice claims ETH",
+      "network": "arbitrumSepolia",
+      "chainId": 421614,
+      "hash": "0xb248bb665c82121c72371c4fefa3fc5f63454462852f2e80a8bb3a028c2c6e61",
+      "url": "https://sepolia.arbiscan.io/tx/0xb248bb665c82121c72371c4fefa3fc5f63454462852f2e80a8bb3a028c2c6e61",
+      "status": "confirmed",
+      "blockNumber": 329992577,
+      "confirmations": 2
+    },
+    {
+      "label": "Bob claims Rain",
+      "network": "sepolia",
+      "chainId": 11155111,
+      "hash": "0xe3da1b554b1af64fca32793f6a432011715c9fe62d4d459426738ff98f763f37",
+      "url": "https://sepolia.etherscan.io/tx/0xe3da1b554b1af64fca32793f6a432011715c9fe62d4d459426738ff98f763f37",
+      "status": "confirmed",
+      "blockNumber": 12152147,
+      "confirmations": 2
+    }
+  ],
+  "completedAt": "2026-11-17T04:51:15.404Z",
+  "finalStatus": {
+    "rain": "Claimed",
+    "eth": "Claimed"
+  }
+}

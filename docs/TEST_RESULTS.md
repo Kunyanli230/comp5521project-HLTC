@@ -2,6 +2,21 @@
 
 操作步骤见 [TASK_C_FLOW.md](TASK_C_FLOW.md)，实现见 [TASK_C.md](TASK_C.md)。
 
+## 2026-11-17（UTC）加分题：点锁交换
+
+协议、隐私边界和失败用例的说明见 [CHALLENGE.md](CHALLENGE.md)，公开报告见 [successful-swap-2026-11-17.json](../deployments/point/successful-swap-2026-11-17.json)。
+
+| 动作 | 交易 | RPC 核验结果 |
+|---|---|---|
+| Alice 锁 10 MST | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0x7cfbc41e9838569284fdb633ff7bd9c8e05c9135e5506a4ba7c30bb75cd82fc5) | 目标为部署的 ERC20PointHTLC；锁 `0x8605f390451E0554321bD98229e8f1e6ed1a9B06` |
+| Bob 锁 0.001 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0x0beaf8aff60012e7608dceb906acc1c183a4709f66561c4696c55fed1e2bc653) | 目标为部署的 ETHPointHTLC；锁 `0x80f50bB4b8736879aeCB28806a22623EA0a4c3F5`，与 MST 侧不同 |
+| Alice 领取 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0xb248bb665c82121c72371c4fefa3fc5f63454462852f2e80a8bb3a028c2c6e61) | SwapClaimed 公开的标量导出的地址等于 ETH 侧的锁；状态 Claimed |
+| Bob 领取 MST | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0xe3da1b554b1af64fca32793f6a432011715c9fe62d4d459426738ff98f763f37) | SwapClaimed 公开的标量与 ETH 侧不同，导出的地址等于 MST 侧的锁；状态 Claimed |
+
+- 每笔交易等待两次确认。公开报告中不含任何一个领取标量，也不含链下 offer。
+- 从两个点锁合约的部署块查到核验时的最新块，两条链各只有一条 SwapCreated。
+- 同日本地验证：`npm test` 188 项通过；`npm run test:point`、`npm run test:cross-chain`、`npm run test:refund-path` 通过。点锁集成测试覆盖成功交换、三种 offer 被拒（ETH 链区块高度不变）、拒绝后的退款以及部署记录复用。
+
 ## 2026-11-10 后前端手动验收 S（交换成功）
 
 | 动作 | 用户提供的交易 | RPC 核验结果 |
