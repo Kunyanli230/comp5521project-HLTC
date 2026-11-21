@@ -1,5 +1,4 @@
 // Challenge Part: acceptance test for scripts/lib/pointProtocol.js on two independent local chains.
-// AI-assisted (function-level): test written with AI help; see docs/AI_ASSISTANCE.md.
 // Run: npx hardhat compile && node test/integration/pointSwap.js
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

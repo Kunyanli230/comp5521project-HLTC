@@ -1,4 +1,3 @@
-// AI-assisted B1 deployment. Each chain is connected and confirmed independently.
 const path = require("node:path");
 const { ethers } = require("ethers");
 const { ROOT, artifact, contexts, close, readJson, writeJson, assertCode, confirmed, errorMessage } = require("./lib/runtime");

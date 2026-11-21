@@ -1,4 +1,3 @@
-// Point-lock coordinator for two independent chains. AI-assisted adaptation of protocol.js.
 const fs = require("node:fs");
 const path = require("node:path");
 const { ethers } = require("ethers");

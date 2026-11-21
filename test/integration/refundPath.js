@@ -1,4 +1,3 @@
-// AI-assisted B3/B4 integration tests; setup adapted from crossChain.js.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");

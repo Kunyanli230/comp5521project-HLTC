@@ -1,4 +1,3 @@
-// AI-assisted: exercise the production coordinator on two independent local chains.
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");

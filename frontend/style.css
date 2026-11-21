@@ -108,9 +108,6 @@ button, input { max-width: 100%; }
 .workflow-steps a:hover:not([aria-current="step"]) { background: rgba(255, 255, 255, .04); color: var(--ink); }
 .page-kicker { display: flex; justify-content: space-between; align-items: center; gap: 14px; color: var(--green); margin: 0 0 12px; }
 #page-mode { color: var(--muted); font-size: 9px; letter-spacing: .12em; }
-/* AI-assisted: on-chain state strip rendered as a two-node bridge. Lane animation only mirrors the status
-   already read from the contracts (dashed = nothing to show, flowing dots = Active, solid beam = Claimed,
-   reversed dots = Refunded). lib/bridge.js sets the data-*-flow attributes; nothing here changes behaviour. */
 .lock-status-strip { container: lock-status / inline-size; position: relative; overflow: hidden; background: var(--paper); border: 1px solid var(--line); border-top: 3px solid var(--green); padding: 16px 18px 14px; margin-bottom: 22px; }
 .lock-status-strip::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 55%, rgba(95, 212, 192, .07), transparent 60%); }
 .lock-status-strip > p:not(.eyebrow), .lock-status-strip > a { position: relative; color: var(--muted); font-size: 11px; margin: 0; }
@@ -148,11 +145,9 @@ button, input { max-width: 100%; }
 .bridge-hashlock::before { content: "⬡ "; color: var(--green); }
 .bridge-hashlock[data-present="false"] { color: var(--muted); }
 #lock-bridge:not([data-rain-flow="unchecked"]) #current-locks-read-status::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin: 0 7px 1px 0; background: var(--green); box-shadow: 0 0 8px var(--green); vertical-align: middle; animation: bridge-blink 1.8s ease-in-out infinite; }
-/* AI-assisted: local-clock countdown for Active locks; the chain timestamp at the next read stays authoritative. */
 .countdown { display: block; margin: 4px 0 0; color: var(--green-dark); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .countdown[data-expired="true"] { color: var(--gold); }
 span.countdown { display: inline; margin: 0 0 0 6px; }
-/* AI-assisted: inline copy controls next to IDs, hashes and addresses. */
 .copy-button { min-height: 0; padding: 2px 8px; margin-left: 4px; border: 1px solid rgba(95, 212, 192, .42); border-radius: 2px; background: transparent; color: var(--green); font-size: 10px; font-weight: 600; letter-spacing: .04em; line-height: 1.4; vertical-align: middle; }
 .copy-button:hover:not(:disabled) { background: var(--green-light); border-color: var(--green); box-shadow: none; }
 .copy-button[data-state="done"] { color: var(--green-dark); background: var(--green-light); border-color: var(--green); }

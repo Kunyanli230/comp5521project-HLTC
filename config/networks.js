@@ -1,4 +1,3 @@
-// AI-assisted: public metadata only; RPC credentials remain in .env.
 module.exports = {
   sepolia: {
     name: "Ethereum Sepolia", chainId: 11155111,

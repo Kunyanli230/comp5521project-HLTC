@@ -1,4 +1,3 @@
-// AI-assisted B2 coordination. Two providers, no contract-to-contract linkage.
 const fs = require("node:fs");
 const path = require("node:path");
 const { ethers } = require("ethers");

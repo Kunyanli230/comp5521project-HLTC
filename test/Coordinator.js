@@ -1,4 +1,3 @@
-// AI-assisted regression tests for counterparty checks and confirmation handling.
 const { expect } = require("chai");
 const { ethers } = require("ethers");
 const { settings, confirmed, eventFrom, txUrl } = require("../scripts/lib/runtime");

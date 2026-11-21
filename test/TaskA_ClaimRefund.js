@@ -1,5 +1,4 @@
 // Task A (X): claim/refund happy-path and failure tests for both assets.
-// AI-assisted scaffold; see docs/AI_ASSISTANCE.md for disclosure.
 // Order: ERC20 claim -> ERC20 refund -> ETH claim -> ETH refund -> ERC20 failures -> ETH failures.
 const { expect } = require("chai");
 const { ethers } = require("hardhat");

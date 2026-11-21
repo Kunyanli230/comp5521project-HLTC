@@ -1,4 +1,3 @@
-// AI-assisted B4 entry point; each chain independently permits or refuses a refund.
 const { contexts, close, errorMessage } = require("./lib/runtime");
 const { loadRun, makeJournal, refundIfAllowed } = require("./lib/recovery");
 const { readStatus, printStatus } = require("./status");

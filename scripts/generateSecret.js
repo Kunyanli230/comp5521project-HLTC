@@ -1,4 +1,3 @@
-// AI-assisted: save the secret locally; print only its hash and private file path.
 const { randomBytes } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");

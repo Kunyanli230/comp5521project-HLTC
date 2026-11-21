@@ -1,4 +1,3 @@
-// AI-assisted read-only preflight; prints public addresses and balances only.
 const { ethers } = require("ethers");
 const { contexts, close, errorMessage } = require("./lib/runtime");
 async function main() {

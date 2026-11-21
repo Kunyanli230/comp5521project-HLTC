@@ -1,4 +1,3 @@
-// AI-assisted B3 classification tests; see docs/AI_ASSISTANCE.md.
 const { expect } = require("chai");
 const fs = require("node:fs");
 const path = require("node:path");

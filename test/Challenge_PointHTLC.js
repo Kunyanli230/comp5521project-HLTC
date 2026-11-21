@@ -1,5 +1,4 @@
 // Challenge Part: acceptance tests for the point-lock HTLC variants (ETHPointHTLC / ERC20PointHTLC).
-// AI-assisted (function-level): test written with AI help; see docs/AI_ASSISTANCE.md.
 // Covers only what differs from the basic contracts: the lock is an address derived from a
 // secp256k1 point, and claim() takes the scalar. Receiver/expiry/repeat rules are inherited
 // unchanged and are covered by the ported Task A regression tests.

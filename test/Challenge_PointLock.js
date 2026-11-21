@@ -1,5 +1,4 @@
 // Challenge Part: PointLock.pointAddress(scalar) must equal the Ethereum address of scalar*G.
-// AI-assisted (function-level): test written with AI help; see docs/AI_ASSISTANCE.md.
 // The reference value comes from ethers (off-chain secp256k1), the tested value from the
 // on-chain ecrecover call, so the two implementations are independent.
 const { expect } = require("chai");

@@ -1,4 +1,3 @@
-// AI-assisted tests for the shared integration contract, including expiry boundaries.
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { time, loadFixture } = require("@nomicfoundation/hardhat-network-helpers");

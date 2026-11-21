@@ -1,5 +1,4 @@
 // Challenge Part: acceptance tests for scripts/lib/pointLock.js (off-chain point-lock arithmetic).
-// AI-assisted (function-level): test written with AI help; see docs/AI_ASSISTANCE.md.
 // CH1: Bob's check that the two locks are related. CH2: deriving the second claim scalar.
 // CH3: failed verifications and incorrect-secret cases.
 const { expect } = require("chai");

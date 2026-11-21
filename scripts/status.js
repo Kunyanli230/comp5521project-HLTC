@@ -1,4 +1,3 @@
-// AI-assisted B3 entry point; reads each chain independently, never local secrets.
 const { ethers } = require("ethers");
 const { contexts, close, errorMessage } = require("./lib/runtime");
 const { readSide, advise, findRevealedPreimage, loadRun } = require("./lib/recovery");

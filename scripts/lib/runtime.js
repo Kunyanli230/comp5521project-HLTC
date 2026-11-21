@@ -1,4 +1,3 @@
-// AI-assisted configuration, chain validation and confirmed-transaction helpers.
 const fs = require("node:fs");
 const path = require("node:path");
 const { ethers } = require("ethers");
@@ -48,7 +47,6 @@ async function assertChain(chain) {
   if (Number(await chain.provider.send("eth_chainId", [])) !== chain.chainId) throw new Error(`${chain.name}: unexpected RPC chain ID`);
 }
 
-// AI-assisted: 按 Solidity 尾部两字节长度定位并完整解码 CBOR，不按固定字符数截断。
 // 只识别本项目使用的发布版 solc 元数据；未知字段/格式保守拒绝，不能用“忽略尾部”放行。
 function splitSolidityMetadata(code) {
   const bytes = Buffer.from(code.slice(2), "hex");
@@ -78,7 +76,6 @@ function splitSolidityMetadata(code) {
     markers: JSON.stringify([keys, metadata.solc.toString("hex"), metadata.experimental]) };
 }
 
-// AI-assisted: 完整匹配优先；只允许元数据哈希变化，不宣称源码/编译配置完全相同。
 function compareBytecode(actual, expected) {
   if (![actual, expected].every((value) => typeof value === "string" && /^0x(?:[0-9a-fA-F]{2})+$/.test(value))) {
     return { match: "mismatch", reason: "invalid or empty runtime bytecode" };

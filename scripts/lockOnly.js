@@ -1,4 +1,3 @@
-// AI-assisted refund-demo setup; reuse B2 and stop after both verified locks.
 const { contexts, close, errorMessage } = require("./lib/runtime");
 const { runSuccessfulSwap } = require("./lib/protocol");
 

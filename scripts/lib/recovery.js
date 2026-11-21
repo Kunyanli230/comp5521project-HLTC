@@ -1,4 +1,3 @@
-// AI-assisted B3/B4 recovery; see docs/AI_ASSISTANCE.md.
 const fs = require("node:fs");
 const path = require("node:path");
 const { ethers } = require("ethers");
@@ -95,7 +94,6 @@ async function readConfirmedClaim(chain, swapId, transactionHash) {
   return { swapId, transactionHash, confirmations, blockHash: receipt.blockHash, preimage, swap };
 }
 
-// AI-assisted segmented event query; the secret is taken only from on-chain events.
 async function findRevealedPreimage(chain, swapId, fromBlock) {
   if (!Number.isSafeInteger(fromBlock) || fromBlock < 0) throw new Error("A valid Lock ETH blockNumber is required");
   const swap = await chain.htlc.swaps(swapId);
