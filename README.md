@@ -1,7 +1,5 @@
 # Group 4 HTLC Project
 
-## Completed Work Record
-
 **Task A:**
 
 - **Jiayang Li:**
