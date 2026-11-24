@@ -64,7 +64,7 @@ C 通过本机 HTTP 调用 B：`chainActions.js → serveFrontend.mjs → webCoo
 
 `serveFrontend.mjs`、`webCoordinator.mjs`、`webProtocol.mjs` 是接入网页时新增的 HTTP/单步适配，不是组员原先就有的三个文件。它们调用原 B 功能；建锁参数用共用的 `protocol.lockCall`，输入解析和预期字段用 `shared/swapInputs.mjs`。B 原 CLI 仍可独立执行整轮交换，网页则由参与者逐步确认。本机服务不是已部署的远程多用户后端。
 
-职责、复用和原文件调整统一见 [Task C 说明](TASK_C.md)，输入、按钮与预期结果见 [操作流程](TASK_C_FLOW.md)。本文件保留 A/B/C 的共同合约接口约定。
+职责、复用和原文件调整统一见 [Task C 说明](TASK_C.md)，启动与操作步骤见 [README 的 Task C 一节](../README.md#task-c-browser-frontend)。本文件保留 A/B/C 的共同合约接口约定。
 
 
 ## 错误与状态流

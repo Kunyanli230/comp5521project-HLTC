@@ -1,6 +1,6 @@
 # 验证记录
 
-操作步骤见 [TASK_C_FLOW.md](TASK_C_FLOW.md)，实现见 [TASK_C.md](TASK_C.md)。
+操作步骤见 [README 的 Task C 一节](../README.md#task-c-browser-frontend)，实现见 [TASK_C.md](TASK_C.md)。
 
 ## 2026-11-17（UTC）加分题：点锁交换
 

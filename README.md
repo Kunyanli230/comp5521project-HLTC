@@ -122,21 +122,6 @@ Public run records live in `runs/<runId>.json` and contain contracts, swap IDs, 
 
 If a run fails partway through, the script exits and marks the run as `incomplete`. Inspect pending/confirmed transactions in the run record and on-chain states first; a timeout does not mean the transaction was never mined. Keep the secret and continue claiming via the fixed interface based on on-chain status, or have the original sender call `refund(swapId)` after expiry. There is no automatic resume/continuation feature; re-running creates a fresh pair of swap IDs.
 
-## Challenge Part: Point-Lock Swap
-
-On 2026-11-17 (UTC), Alice and Bob completed a testnet swap of 10 MST and 0.001 ETH using two distinct point locks. Before re-running, confirm Alice's MST balance covers `RAIN_AMOUNT` (set to `10` for that run). [Protocol, privacy boundary, and failure cases](docs/CHALLENGE.md) · [Public swap report](deployments/point/successful-swap-2026-11-17.json)
-
-| Network | Point-Lock Contract |
-|---|---|
-| Ethereum Sepolia | ERC20PointHTLC · [`0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd`](https://sepolia.etherscan.io/address/0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd) |
-| Arbitrum Sepolia | ETHPointHTLC · [`0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C`](https://sepolia.arbiscan.io/address/0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C) |
-
-| Command | Purpose |
-|---|---|
-| `npm run test:point` | Verify swaps, rejections, refunds, and deployment-record reuse on two local chains. |
-| `npm run deploy:point` | Deploy or reuse point-lock contracts on both configured testnets, writing records to `deployments/point/`. |
-| `npm run swap:point` | Bind to the deployed contracts above and execute a new point-lock swap. |
-
 ## B3 / B4: Status Inspection, Timeout Refund, and Demo Preparation
 
 For first-time setup, run `npm ci` and `npm run compile`. Status and refund entry points use `node`, with arguments passed via `npm run ... --`. Run the commands below from the repository root, replacing `<runId>` with a run record ID or JSON file path.
@@ -238,6 +223,21 @@ Complete function signatures, fields, events, errors, status values, and time bo
 | Query | `swaps(id)` | `swaps(id)` |
 
 Both contracts emit `SwapCreated`, `SwapClaimed`, and `SwapRefunded`. Status codes are `0=None`, `1=Active`, `2=Claimed`, and `3=Refunded`. Teammates may refine implementations against the fixed interface; recompile and redeploy after runtime changes.
+
+## Challenge Part: Point-Lock Swap
+
+On 2026-11-17 (UTC), Alice and Bob completed a testnet swap of 10 MST and 0.001 ETH using two distinct point locks. Before re-running, confirm Alice's MST balance covers `RAIN_AMOUNT` (set to `10` for that run). [Protocol, privacy boundary, and failure cases](docs/CHALLENGE.md) · [Public swap report](deployments/point/successful-swap-2026-11-17.json)
+
+| Network | Point-Lock Contract |
+|---|---|
+| Ethereum Sepolia | ERC20PointHTLC · [`0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd`](https://sepolia.etherscan.io/address/0xB54568981Da8FEAa6bE483e8ED2597876178c4Dd) |
+| Arbitrum Sepolia | ETHPointHTLC · [`0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C`](https://sepolia.arbiscan.io/address/0x5fda2400Adfde8F03AfA07E341D9482Dc859cd2C) |
+
+| Command | Purpose |
+|---|---|
+| `npm run test:point` | Verify swaps, rejections, refunds, and deployment-record reuse on two local chains. |
+| `npm run deploy:point` | Deploy or reuse point-lock contracts on both configured testnets, writing records to `deployments/point/`. |
+| `npm run swap:point` | Bind to the deployed contracts above and execute a new point-lock swap. |
 
 ## Differences from Course Examples and Contribution Notes
 
