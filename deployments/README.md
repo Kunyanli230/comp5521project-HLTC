@@ -1,15 +1,15 @@
-# 公网部署记录
+# Public Deployment Records
 
-2026-10-25 已在两条测试网完成部署，记录位于 `sepolia.json` 和 `arbitrumSepolia.json`，状态均为 confirmed。已完成的成功交换公开证据位于 `successful-swap-2026-10-25.json`。
+Deployment on both testnets was completed on 2026-10-25. The records are in `sepolia.json` and `arbitrumSepolia.json`, and both have status confirmed. Public evidence of the completed successful swap is in `successful-swap-2026-10-25.json`.
 
-- Ethereum Sepolia ERC20HTLC：`0x98eFb0B12BA43d5efc3723fFf839Fee29B8f72A3`
-- Arbitrum Sepolia ETHHTLC：`0x6c4826b0D6Ad8aB8dBbeD368f45E963306626aA2`
-- Rain：Ethereum Sepolia 上的 `0xf49d4F8A697C09D4daf942938A2C4cb5593164dC`
+- Ethereum Sepolia ERC20HTLC: `0x98eFb0B12BA43d5efc3723fFf839Fee29B8f72A3`
+- Arbitrum Sepolia ETHHTLC: `0x6c4826b0D6Ad8aB8dBbeD368f45E963306626aA2`
+- Rain: `0xf49d4F8A697C09D4daf942938A2C4cb5593164dC` on Ethereum Sepolia
 
-每份记录包含 `schemaVersion`、`network`、`chainId`、`contract`、`address`、`rpcEnv`（环境变量名）、`explorer`、`deployer`、`accounts`、`rainAddress`、`status` 和 `transaction`（hash、url、blockNumber、confirmations、status）。不写入私钥、秘密或实际 RPC URL。
+Each record contains `schemaVersion`, `network`, `chainId`, `contract`, `address`, `rpcEnv` (the environment variable name), `explorer`, `deployer`, `accounts`, `rainAddress`, `status`, and `transaction` (hash, url, blockNumber, confirmations, status). Private keys, secrets, and actual RPC URLs are not written.
 
-部署确认后 `status=confirmed`。正常重跑会校验已部署代码并复用地址；未确认的部署记录会阻止重复部署，应先通过记录中的交易哈希核对其链上状态。若需部署全新版本，先归档旧公开记录，重新编译再部署，同时更新组员使用的地址。
+After a deployment is confirmed, `status=confirmed`. A normal re-run verifies the deployed code and reuses the address; an unconfirmed deployment record blocks repeated deployment, so first check its on-chain state using the transaction hash in the record. To deploy a brand-new version, archive the old public records, recompile, and then deploy, and update the addresses used by teammates at the same time.
 
-仅提交真正的公开测试网部署记录。本地集成测试把记录写入临时目录，chain ID 为 31337 / 31338，不能当作测试网地址使用。
+Only commit real public testnet deployment records. Local integration tests write records to a temporary directory, with chain IDs 31337 / 31338, and these cannot be used as testnet addresses.
 
-点锁版的[两条链部署记录](point/)及 [2026-11-17 成功交换报告](point/successful-swap-2026-11-17.json) 单独保存在 `deployments/point/`。
+The point-lock version's [deployment records for both chains](point/) and the [2026-11-17 successful swap report](point/successful-swap-2026-11-17.json) are stored separately in `deployments/point/`.
