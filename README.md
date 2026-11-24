@@ -175,7 +175,7 @@ npm run test:cross-chain
 npm run status -- deployments/successful-swap-2026-10-25.json
 ```
 
-`test:refund-path` automatically starts and stops two local chains and tests lock-only setup, expiry boundaries, early/duplicate/claimed rejections, stale-snapshot preflight rejection, correct sender enforcement, event preimages, and recovery journals. Local test artifacts are stored in Git-ignored `.local/refund-test-*/` and represent local verification only. B4 real testnet locking and refund demonstration must still be run and recorded separately with public transaction links.
+`test:refund-path` automatically starts and stops two local chains and tests lock-only setup, expiry boundaries, early/duplicate/claimed rejections, stale-snapshot preflight rejection, correct sender enforcement, event preimages, and recovery journals. Local test artifacts are stored in Git-ignored `.local/refund-test-*/` and represent local verification only. A B4 real testnet run (lock-only, early refund refused, ETH and Rain timeout refunds, repeat refund refused) is recorded with public transaction links in [TEST_RESULTS.md](docs/TEST_RESULTS.md#2026-11-24-utc-b4-testnet-timeout-refund).
 
 On Windows PowerShell, replace `npm` with `npm.cmd` if scripts are blocked. CLI run records and browser public JSON files have different formats and are not interchangeable.
 

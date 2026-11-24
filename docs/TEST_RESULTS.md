@@ -2,6 +2,25 @@
 
 For operating steps, see [the Task C section of the README](../README.md#task-c-browser-frontend); for the implementation, see [TASK_C.md](TASK_C.md).
 
+## 2026-11-24 (UTC) B4 Testnet Timeout Refund
+
+Instance created with `npm run lock:only` and shortened timelocks (`ETH_TIMELOCK_SECONDS=240 RAIN_TIMELOCK_SECONDS=480 MIN_TIMELOCK_GAP_SECONDS=120 MIN_CLAIM_WINDOW_SECONDS=60`), then driven only with `npm run status` and `npm run refund -- <run> auto`. No claim was made and no secret was revealed. Both locks target the deployed base contracts listed in [deployments/README.md](../deployments/README.md).
+
+- Rain swap ID: `0x04fdc778a34ee6938d83e22a0443505e051eca0467cd6e1613914a786b354ebe` (100 MST, Alice to Bob, expiry 05:02:12).
+- ETH swap ID: `0xc223331b331fa23a69e8200aa115403016ccdf25af488fc2b677de6c7f4dc2cf` (0.001 ETH, Bob to Alice, expiry 04:58:40).
+
+| Time (UTC) | Step | Transaction | Result |
+|---|---|---|---|
+| 04:54:24 | Alice locks 100 MST | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0xe9b812658d18a3d40391ae32ea8f391bd5d62bb02c3088b17dd6393e500101d8) | Status 1; `status` shows CLAIMABLE, 444 seconds remaining |
+| 04:54:43 | Bob locks 0.001 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0x369d16086fb873d119a39fe10d384c0559dab0748cd9545cb0dd6b316e4d31aa) | Status 1; `status` shows CLAIMABLE, 228 seconds remaining |
+| 04:54:54 | `refund auto` before either expiry | None | Both sides refused with `RefundNotReady` (444 and 224 seconds remaining); no transaction sent, exit code 2 |
+| 04:59:27 | `refund auto` after the ETH expiry | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0xddd1d2a43532aa1b0df831bba728d9b60e53253d8b1caa52f3a86e292c8cec95) | Bob refunded ETH, status 1; ETH side REFUNDED; Rain side refused with `RefundNotReady` (180 seconds remaining) |
+| 05:03:00 | `refund auto` after the Rain expiry | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0x2e96d74e1fcb8aaa54a5c72fa39b2c3a34f6cdec2d630d71ccf44e25dc8732e4) | Alice refunded MST, status 1; ETH side refused with `AlreadyCompleted` |
+| 05:03:21 | `refund auto` again | None | Both sides refused with `AlreadyCompleted`; final `status` shows REFUNDED on both chains |
+
+- Each transaction waited for two confirmations; the senders and target contracts were re-checked from the receipts over RPC.
+- The refund sender matches each lock's sender (Bob on Arbitrum Sepolia, Alice on Ethereum Sepolia).
+
 ## 2026-11-17 (UTC) Challenge Part: Point-Lock Swap
 
 For the protocol, privacy boundary, and failure cases, see [CHALLENGE.md](CHALLENGE.md); the public report is [successful-swap-2026-11-17.json](../deployments/point/successful-swap-2026-11-17.json).
