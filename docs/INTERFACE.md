@@ -1,31 +1,31 @@
-# Task A / B / C 接口约定 v1
+# Task A / B / C Interface Contract v1
 
-本仓库把原代币引用统一命名为 **Rain**。`RAIN_ADDRESS` 指向真实的 Ethereum Sepolia ERC20 代币；改配置名不会修改已部署代币的 `name()`、`symbol()` 或地址。公网脚本不部署或铸造测试代币，`TestToken` 只用于本地测试。
+This repository names the original token reference **Rain** throughout. `RAIN_ADDRESS` points to the real Ethereum Sepolia ERC20 token; renaming the configuration does not change the deployed token's `name()`, `symbol()` or address. Public-network scripts do not deploy or mint test tokens; `TestToken` is used only for local tests.
 
-## 网络和账户
+## Networks and Accounts
 
-| 资产 | 网络 | chain ID | 合约 | 发送人 | 接收人 |
+| Asset | Network | chain ID | Contract | Sender | Receiver |
 |---|---|---:|---|---|---|
 | Rain ERC20 | Ethereum Sepolia | 11155111 | ERC20HTLC | Alice | Bob |
-| 原生 ETH | Arbitrum Sepolia | 421614 | ETHHTLC | Bob | Alice |
+| Native ETH | Arbitrum Sepolia | 421614 | ETHHTLC | Bob | Alice |
 
-网络公开元数据：`config/networks.js`。B 原 CLI 从本地 `.env` 读取 RPC 和账户私钥并签名；网页 HTTP 服务读取 RPC 配置、使用只读 provider，不创建私钥签名钱包，未配置 RPC 时使用代码中的公开回退地址。C 不导入 `.env`，由 MetaMask 签名并广播。公开地址和初始交易结果见 `deployments/*.json`，后续实际验收证据另记在 TEST_RESULTS.md。Arbitrum 官方网络资料：<https://docs.arbitrum.io/chain-info>。
+Public network metadata: `config/networks.js`. B's original CLI reads the RPC and account private keys from the local `.env` and signs. The web HTTP service reads the RPC configuration, uses a read-only provider, does not create a private-key signing wallet, and uses the public fallback addresses in the code when no RPC is configured. C does not import `.env`; MetaMask signs and broadcasts. Public addresses and initial transaction results are in `deployments/*.json`; later actual acceptance evidence is recorded separately in TEST_RESULTS.md. Official Arbitrum network information: <https://docs.arbitrum.io/chain-info>.
 
-## 函数签名（固定参数顺序）
+## Function Signatures (fixed parameter order)
 
 ```solidity
-// ERC20HTLC: Alice 先在 Rain 代币上 approve(ERC20HTLC地址, amount)。
+// ERC20HTLC: Alice first calls approve(ERC20HTLC address, amount) on the Rain token.
 function createERC20Swap(
     bytes32 swapId, address receiver, address token, uint256 amount,
     bytes32 hashlock, uint256 timelock
 ) external;
 
-// ETHHTLC: amount 由 msg.value 决定，不另传 amount。
+// ETHHTLC: amount is determined by msg.value; no separate amount is passed.
 function createETHSwap(
     bytes32 swapId, address receiver, bytes32 hashlock, uint256 timelock
 ) external payable;
 
-// 两份合约均提供：
+// Provided by both contracts:
 function claim(bytes32 swapId, bytes32 preimage) external;
 function refund(bytes32 swapId) external;
 function swaps(bytes32 swapId) external view returns (
@@ -34,14 +34,14 @@ function swaps(bytes32 swapId) external view returns (
 );
 ```
 
-- `swapId`：非零、每个合约内不可复用的 bytes32；本项目 CLI 和网页为两条链分别生成不同 ID，由脚本报告或公开设置关联两者。两份合约不通信，不在链上强制跨链 ID 不同。
-- `preimage`：密码学随机生成的 **32 个原始字节**。ethers `keccak256(preimage)` 等价于 Solidity `keccak256(abi.encodePacked(preimage))`。不要哈希 `0x...` 的文本字符串。
-- `hashlock`：两条链相同的非零 bytes32。
-- `timelock`：各自链上的绝对 Unix 秒数；`claim` 要求 `block.timestamp < timelock`，`refund` 要求 `block.timestamp >= timelock`。
-- `amount`：最小单位整数。B 原 CLI 按 Rain 链上 `decimals()` 转换；当前网页/HTTP 入口按课程 Rain 的 18 位精度解析，并在授权或建 Rain 锁时检查代币精度为 18。ETH 使用 wei，ETH 锁的 `token` 字段是零地址。
-- `status`：`0=None`、`1=Active`、`2=Claimed`、`3=Refunded`，终态不可逆。领取和退款都须由指定账户调用。
+- `swapId`: a non-zero bytes32 that cannot be reused within each contract. In this project the CLI and the web app generate different IDs for the two chains, and the script report or public setup links the two. The two contracts do not communicate and do not enforce on-chain that the IDs differ across chains.
+- `preimage`: **32 raw bytes** generated cryptographically at random. ethers `keccak256(preimage)` is equivalent to Solidity `keccak256(abi.encodePacked(preimage))`. Do not hash the text string of `0x...`.
+- `hashlock`: a non-zero bytes32, identical on both chains.
+- `timelock`: an absolute Unix timestamp in seconds on each chain; `claim` requires `block.timestamp < timelock`, and `refund` requires `block.timestamp >= timelock`.
+- `amount`: an integer in the smallest unit. B's original CLI converts using Rain's on-chain `decimals()`; the current web/HTTP entry point parses using the course Rain's 18-decimal precision, and checks that the token precision is 18 when approving or creating the Rain lock. ETH uses wei, and the `token` field of an ETH lock is the zero address.
+- `status`: `0=None`, `1=Active`, `2=Claimed`, `3=Refunded`; terminal states are irreversible. Both claim and refund must be called by the designated account.
 
-## 事件
+## Events
 
 ```solidity
 event SwapCreated(
@@ -52,68 +52,68 @@ event SwapClaimed(bytes32 indexed swapId, bytes32 preimage);
 event SwapRefunded(bytes32 indexed swapId);
 ```
 
-按合约地址、事件 topic 和 swapId 查找日志，不能假设事件处在 `receipt.logs[0]`。领取交易一旦广播，秘密就可能从 calldata 被观察到；Bob 的正常恢复入口仍要求从已确认的 Arbitrum `SwapClaimed` 事件取得并核验秘密。网页中 Alice 点击领取时，会先把 preimage 交给本机 HTTP 服务校验、编码和估费，估费 RPC 也会收到含秘密的调用参数；因此不能声称广播前只有浏览器知道秘密。服务不将秘密写入文件或请求日志；公开设置和浏览器 localStorage 不保存 preimage。
+Look up logs by contract address, event topic and swapId; do not assume the event is at `receipt.logs[0]`. Once a claim transaction is broadcast, the secret may be observed from calldata; Bob's normal recovery entry point still requires obtaining and verifying the secret from the confirmed Arbitrum `SwapClaimed` event. When Alice clicks claim in the web app, the preimage is first handed to the local HTTP service for validation, encoding and fee estimation, and the fee-estimation RPC also receives call parameters containing the secret; therefore it cannot be claimed that only the browser knows the secret before broadcast. The service does not write the secret to files or request logs; the public setup and browser localStorage do not store the preimage.
 
-ABI 文件在 `config/abi/ERC20HTLC.json`、`config/abi/ETHHTLC.json`。修改合约后执行 `npm run abi:export`；接口变更应同步脚本、前端和本文档。部署与交换共用 `runtime.assertCode`：完整 runtime bytecode 一致则通过；可靠解码后只有元数据哈希不同、执行部分与编译器标记一致则警告通过；执行部分不同或无法可靠判断则阻止。元数据警告不证明源码和完整编译设置一致，详细边界见 TASK_C.md。Task A 修改执行实现后需重新编译并部署对应版本；仅元数据哈希不同不自动要求重新部署。
+ABI files are `config/abi/ERC20HTLC.json` and `config/abi/ETHHTLC.json`. After modifying the contracts, run `npm run abi:export`; interface changes should be synchronized across scripts, frontend and this document. Deployment and swap share `runtime.assertCode`: it passes if the full runtime bytecode matches; if, after reliable decoding, only the metadata hash differs and the executable part matches the compiler marker, it passes with a warning; if the executable part differs or no reliable judgment can be made, it blocks. A metadata warning does not prove that the source and the full compile settings are identical; see TASK_C.md for the detailed boundaries. After Task A changes the executable implementation, the corresponding version must be recompiled and redeployed; a metadata-hash-only difference does not automatically require redeployment.
 
-## B/C 的接入方式
+## How B and C Connect
 
-C 调用的是组员实际部署的合约，没有另建一套前端 HTLC 合约或 HTLC ABI 文件副本。`frontend/main.js` 直接导入 `deployments/sepolia.json`、`deployments/arbitrumSepolia.json` 及 `config/abi/` 下两份共享 ABI；HTTP 服务也读取同一套文件。前端另有查询 Rain 余额、allowance 和编码 approve 所需的少量标准 ERC20 ABI 声明，这是代币接口，不是另一份 HTLC 实现。
+C calls the contracts actually deployed by the team members; no separate frontend HTLC contract or copy of an HTLC ABI file was created. `frontend/main.js` directly imports `deployments/sepolia.json`, `deployments/arbitrumSepolia.json` and the two shared ABIs under `config/abi/`; the HTTP service also reads the same set of files. The frontend additionally has a small standard ERC20 ABI declaration for querying Rain balance and allowance and encoding approve; this is the token interface, not another HTLC implementation.
 
-C 通过本机 HTTP 调用 B：`chainActions.js → serveFrontend.mjs → webCoordinator.mjs → protocol.js / recovery.js / runtime.js`。链上操作前置核验、逐笔估费、交易准备和确认核验在 Node.js 中运行；C 仍做表单预览、身份/网络检查、返回交易参数复核、备份管理和 MetaMask 签名请求，不能说前端完全没有检查。
+C calls B through local HTTP: `chainActions.js → serveFrontend.mjs → webCoordinator.mjs → protocol.js / recovery.js / runtime.js`. Pre-operation on-chain verification, per-transaction fee estimation, transaction preparation and confirmation verification run in Node.js; C still does form preview, identity/network checks, review of returned transaction parameters, backup management and MetaMask signing requests, so it cannot be said that the frontend does no checking at all.
 
-`serveFrontend.mjs`、`webCoordinator.mjs`、`webProtocol.mjs` 是接入网页时新增的 HTTP/单步适配，不是组员原先就有的三个文件。它们调用原 B 功能；建锁参数用共用的 `protocol.lockCall`，输入解析和预期字段用 `shared/swapInputs.mjs`。B 原 CLI 仍可独立执行整轮交换，网页则由参与者逐步确认。本机服务不是已部署的远程多用户后端。
+`serveFrontend.mjs`, `webCoordinator.mjs` and `webProtocol.mjs` are HTTP/single-step adapters added when integrating the web app; they are not three files the team members originally had. They call the original B functionality; lock-creation parameters use the shared `protocol.lockCall`, and input parsing and expected fields use `shared/swapInputs.mjs`. B's original CLI can still run a whole swap independently, while the web app has participants confirm step by step. The local service is not a deployed remote multi-user backend.
 
-职责、复用和原文件调整统一见 [Task C 说明](TASK_C.md)，启动与操作步骤见 [README 的 Task C 一节](../README.md#task-c-browser-frontend)。本文件保留 A/B/C 的共同合约接口约定。
+Responsibilities, reuse and adjustments to original files are covered in [Task C notes](TASK_C.md); startup and operation steps are in [the Task C section of the README](../README.md#task-c-browser-frontend). This file keeps the interface contract shared by A/B/C.
 
 
-## 错误与状态流
+## Errors and State Flow
 
-`InvalidInput`、`SwapAlreadyExists`、`SwapNotFound`、`NotReceiver`、`NotSender`、`InvalidSecret`、`ClaimExpired`、`RefundNotReady`、`AlreadyCompleted`，ETH 付款失败另有 `ETHTransferFailed`。两份合约继承 ReentrancyGuard，重入可能抛出 `ReentrancyGuardReentrantCall`；ERC20 转账使用 SafeERC20，可能抛出代币自身或 SafeERC20 的错误。
+`InvalidInput`, `SwapAlreadyExists`, `SwapNotFound`, `NotReceiver`, `NotSender`, `InvalidSecret`, `ClaimExpired`, `RefundNotReady`, `AlreadyCompleted`, and, for failed ETH payments, `ETHTransferFailed`. Both contracts inherit ReentrancyGuard, so reentrancy may throw `ReentrancyGuardReentrantCall`; ERC20 transfers use SafeERC20 and may throw the token's own errors or SafeERC20's errors.
 
 ```text
 None --create--> Active --claim before expiry--> Claimed
                        --refund at/after expiry--> Refunded
 ```
 
-Task B3/B4 和 Task C 使用 `swaps(id)` 与各链区块时间：合约层面，Active 且未到期时指定接收人可用正确秘密领取；Active 且到期后指定发送人可退款。到期不会自动修改 Active 或自动退款。C 额外检查双方约定、跨链窗口、当前账户/网络和所需备份，条件不足时即使 Active 也会禁用相应按钮；不存在或终态不能再次领取/退款。B 的状态查看和退款入口为 `scripts/status.js`、`scripts/refund.js`；C 通过 HTTP 使用 B 的状态分类及操作核验。当前验收状态和历史证据见 [TEST_RESULTS.md](TEST_RESULTS.md)，不能仅凭接口已实现就宣称所有场景已测通过。
+Task B3/B4 and Task C use `swaps(id)` and each chain's block time. At the contract level: when Active and not yet expired, the designated receiver can claim with the correct secret; when Active and expired, the designated sender can refund. Expiry does not automatically change Active or automatically refund. C additionally checks the agreement between the parties, the cross-chain window, the current account/network and the required backup, and disables the corresponding button when conditions are not met even if the swap is Active; a swap that does not exist or is in a terminal state can no longer be claimed or refunded. B's status and refund entry points are `scripts/status.js` and `scripts/refund.js`; C uses B's status classification and operation verification over HTTP. For the current acceptance status and historical evidence see [TEST_RESULTS.md](TEST_RESULTS.md); one cannot claim that all scenarios have passed testing merely because the interface is implemented.
 
-## B2 协调顺序
+## B2 Coordination Order
 
-1. 两条链分别检查 chain ID、合约代码、账户和余额。
-2. 生成独立 swapId、随机秘密及共同 hashlock，并将秘密保存到独立本机文件；检查 allowance，仅在不足时由 Alice 授权并等待确认。网页对应 Prepare 的下载/验证私密备份，再在 Lock Rain 按需授权。
-3. Alice 在 Sepolia 创建 Rain 锁并等待确认。Bob 读取该链核对双方地址、代币、数量、hashlock、期限、Active 状态。
-4. Bob 在 Arbitrum Sepolia 创建 ETH 锁并等待确认。ETH 的期限更短；脚本同时核对绝对时间差和各链剩余时间差。
-5. Alice 再核对两笔锁，确认仍有领取窗口后领取 ETH，等待确认。
-6. Bob 从已确认的 ETH 领取事件读取秘密，领取 Rain，等待确认。
-7. 分别读取两条链确认 Claimed。B CLI 在公开 run 报告及终端记录各步交易；C 在操作处和完成弹窗显示可读结果/交易链接，将 ETH 领取哈希带入下一步。C 只持久化当前公开设置和至多一个未决哈希，没有完整交易历史列表，证据需按 FLOW 保存。
+1. Check chain ID, contract code, account and balance on each of the two chains separately.
+2. Generate an independent swapId, a random secret and a shared hashlock, and save the secret to a separate local file; check the allowance, and only when it is insufficient have Alice approve and wait for confirmation. In the web app this corresponds to downloading/verifying the private backup in Prepare, then approving as needed in Lock Rain.
+3. Alice creates the Rain lock on Sepolia and waits for confirmation. Bob reads that chain and checks the two parties' addresses, token, amount, hashlock, deadline and Active status.
+4. Bob creates the ETH lock on Arbitrum Sepolia and waits for confirmation. The ETH deadline is shorter; the script checks both the absolute time gap and the remaining-time gap on each chain.
+5. Alice checks the two locks again, confirms there is still a claim window, claims ETH, and waits for confirmation.
+6. Bob reads the secret from the confirmed ETH claim event, claims Rain, and waits for confirmation.
+7. Read the two chains separately to confirm Claimed. The B CLI records each step's transaction in the public run report and the terminal; C shows a readable result/transaction link at the point of operation and in the completion dialog, and carries the ETH claim hash into the next step. C persists only the current public setup and at most one pending hash, with no full transaction history list, so evidence must be saved separately while following the [README Task C section](../README.md#task-c-browser-frontend).
 
-默认 Rain=7200 秒、ETH=3600 秒、最小差=600 秒、最小领取窗口=120 秒。B CLI 的配置由 `runtime.settings` 读取；网页可填写本轮时长，但 HTTP 的当前默认边界来自 `shared/swapInputs.mjs` 的 DEFAULT_POLICY，不会因为修改 CLI 的 `.env` 边界而自动改变。计划 ETH 时长必须严格大于 120 秒；正常双边 Active 流程要求两边剩余窗口至少 120 秒，并同时检查绝对期限差和剩余窗口差。它们是协调器的测试策略，不是单份 A 合约强制的跨链常量。
+Defaults: Rain=7200 seconds, ETH=3600 seconds, minimum gap=600 seconds, minimum claim window=120 seconds. The B CLI's configuration is read by `runtime.settings`; the web app lets you enter this round's durations, but the HTTP's current default bounds come from DEFAULT_POLICY in `shared/swapInputs.mjs` and do not change automatically when the CLI's `.env` bounds are modified. The planned ETH duration must be strictly greater than 120 seconds; the normal two-sided Active flow requires at least 120 seconds of remaining window on both sides, and checks both the absolute deadline gap and the remaining-window gap. These are the coordinator's test policy, not cross-chain constants enforced by any single Task A contract.
 
-确认块数只表示各自网络的确认，Arbitrum 的 L2 确认不代表 L1 最终结算。网络拥塞或 RPC 故障下不保证自动完成；已提交但未核验的交易应先查回执和两边状态，再决定下一步，不能盲目重发。
+The number of confirmation blocks only represents confirmation on each network; an L2 confirmation on Arbitrum does not mean L1 final settlement. Automatic completion is not guaranteed under network congestion or RPC failure; a transaction that has been submitted but not yet verified should first have its receipt and both chains' states checked before deciding the next step, and must not be blindly resent.
 
-## 加分题：点锁合约接口
+## Challenge Part: Point-Lock Contract Interface
 
-点锁版是另外两份合约，源码在 `contracts/challenge/`，部署记录在 `deployments/point/`，不替换上面的基础版接口。协议和隐私边界见 [CHALLENGE.md](CHALLENGE.md)。
+The point-lock version is two separate contracts, with source in `contracts/challenge/` and deployment records in `deployments/point/`; it does not replace the basic-version interface above. See [CHALLENGE.md](CHALLENGE.md) for the protocol and privacy boundary.
 
-| 资产 | 网络 | 合约 | 发送人 | 接收人 |
+| Asset | Network | Contract | Sender | Receiver |
 |---|---|---|---|---|
 | Rain ERC20 | Ethereum Sepolia | ERC20PointHTLC | Alice | Bob |
-| 原生 ETH | Arbitrum Sepolia | ETHPointHTLC | Bob | Alice |
+| Native ETH | Arbitrum Sepolia | ETHPointHTLC | Bob | Alice |
 
 ```solidity
-// ERC20PointHTLC: Alice 先 approve(ERC20PointHTLC地址, amount)。
+// ERC20PointHTLC: Alice first calls approve(ERC20PointHTLC address, amount).
 function createERC20Swap(
     bytes32 swapId, address receiver, address token, uint256 amount,
     address pointLock, uint256 timelock
 ) external;
 
-// ETHPointHTLC: 金额为 msg.value。
+// ETHPointHTLC: the amount is msg.value.
 function createETHSwap(
     bytes32 swapId, address receiver, address pointLock, uint256 timelock
 ) external payable;
 
-// 两份合约相同。
+// Identical in both contracts.
 function claim(bytes32 swapId, uint256 secret) external;
 function refund(bytes32 swapId) external;
 function swaps(bytes32 swapId) external view returns (
@@ -127,6 +127,6 @@ event SwapClaimed(bytes32 indexed swapId, uint256 secret);
 event SwapRefunded(bytes32 indexed swapId);
 ```
 
-与基础版的差别只有锁和领取值：`bytes32 hashlock` 换成 `address pointLock`，`claim` 的第二个参数由 `bytes32` 原像换成 `uint256` 标量，合约要求该标量乘以 secp256k1 基点后导出的地址等于 `pointLock`。错误名、状态值、到期边界与基础版相同。
+The only differences from the basic version are the lock and the claim value: `bytes32 hashlock` is replaced by `address pointLock`, and the second parameter of `claim` changes from a `bytes32` preimage to a `uint256` scalar; the contract requires that the address derived from multiplying that scalar by the secp256k1 base point equal `pointLock`. Error names, status values and expiry boundaries are the same as in the basic version.
 
-入口只有 CLI：`npm run deploy:point`、`npm run swap:point`，由 `scripts/lib/pointProtocol.js` 协调。`scripts/status.js`、`scripts/refund.js`、`config/abi/` 和浏览器前端仍只对接基础版合约。
+The only entry points are the CLI: `npm run deploy:point` and `npm run swap:point`, coordinated by `scripts/lib/pointProtocol.js`. `scripts/status.js`, `scripts/refund.js`, `config/abi/` and the browser frontend still connect only to the basic-version contracts.

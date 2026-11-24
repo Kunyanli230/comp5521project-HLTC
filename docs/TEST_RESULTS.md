@@ -1,110 +1,110 @@
-# 验证记录
+# Verification Records
 
-操作步骤见 [README 的 Task C 一节](../README.md#task-c-browser-frontend)，实现见 [TASK_C.md](TASK_C.md)。
+For operating steps, see [the Task C section of the README](../README.md#task-c-browser-frontend); for the implementation, see [TASK_C.md](TASK_C.md).
 
-## 2026-11-17（UTC）加分题：点锁交换
+## 2026-11-17 (UTC) Challenge Part: Point-Lock Swap
 
-协议、隐私边界和失败用例的说明见 [CHALLENGE.md](CHALLENGE.md)，公开报告见 [successful-swap-2026-11-17.json](../deployments/point/successful-swap-2026-11-17.json)。
+For the protocol, privacy boundary, and failure cases, see [CHALLENGE.md](CHALLENGE.md); the public report is [successful-swap-2026-11-17.json](../deployments/point/successful-swap-2026-11-17.json).
 
-| 动作 | 交易 | RPC 核验结果 |
+| Action | Transaction | RPC Verification Result |
 |---|---|---|
-| Alice 锁 10 MST | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0x7cfbc41e9838569284fdb633ff7bd9c8e05c9135e5506a4ba7c30bb75cd82fc5) | 目标为部署的 ERC20PointHTLC；锁 `0x8605f390451E0554321bD98229e8f1e6ed1a9B06` |
-| Bob 锁 0.001 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0x0beaf8aff60012e7608dceb906acc1c183a4709f66561c4696c55fed1e2bc653) | 目标为部署的 ETHPointHTLC；锁 `0x80f50bB4b8736879aeCB28806a22623EA0a4c3F5`，与 MST 侧不同 |
-| Alice 领取 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0xb248bb665c82121c72371c4fefa3fc5f63454462852f2e80a8bb3a028c2c6e61) | SwapClaimed 公开的标量导出的地址等于 ETH 侧的锁；状态 Claimed |
-| Bob 领取 MST | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0xe3da1b554b1af64fca32793f6a432011715c9fe62d4d459426738ff98f763f37) | SwapClaimed 公开的标量与 ETH 侧不同，导出的地址等于 MST 侧的锁；状态 Claimed |
+| Alice locks 10 MST | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0x7cfbc41e9838569284fdb633ff7bd9c8e05c9135e5506a4ba7c30bb75cd82fc5) | Target is the deployed ERC20PointHTLC; lock `0x8605f390451E0554321bD98229e8f1e6ed1a9B06` |
+| Bob locks 0.001 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0x0beaf8aff60012e7608dceb906acc1c183a4709f66561c4696c55fed1e2bc653) | Target is the deployed ETHPointHTLC; lock `0x80f50bB4b8736879aeCB28806a22623EA0a4c3F5`, different from the MST side |
+| Alice claims ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0xb248bb665c82121c72371c4fefa3fc5f63454462852f2e80a8bb3a028c2c6e61) | The address derived from the scalar revealed in SwapClaimed equals the ETH-side lock; status Claimed |
+| Bob claims MST | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0xe3da1b554b1af64fca32793f6a432011715c9fe62d4d459426738ff98f763f37) | The scalar revealed in SwapClaimed differs from the ETH side, and the derived address equals the MST-side lock; status Claimed |
 
-- 每笔交易等待两次确认。公开报告中不含任何一个领取标量，也不含链下 offer。
-- 从两个点锁合约的部署块查到核验时的最新块，两条链各只有一条 SwapCreated。
-- 同日本地验证：`npm test` 188 项通过；`npm run test:point`、`npm run test:cross-chain`、`npm run test:refund-path` 通过。点锁集成测试覆盖成功交换、三种 offer 被拒（ETH 链区块高度不变）、拒绝后的退款以及部署记录复用。
+- Each transaction waited for two confirmations. The public report contains no claim scalar and no off-chain offer.
+- From the deployment blocks of the two point-lock contracts to the latest block at verification time, each chain has exactly one SwapCreated.
+- Local verification on the same day: `npm test` 188 passed; `npm run test:point`, `npm run test:cross-chain`, and `npm run test:refund-path` passed. The point-lock integration tests cover a successful swap, three rejected offers (the ETH chain block height unchanged), a refund after the rejections, and deployment record reuse.
 
-## 2026-11-10 后前端手动验收 S（交换成功）
+## Manual Frontend Acceptance S (Successful Swap) After 2026-11-10
 
-| 动作 | 用户提供的交易 | RPC 核验结果 |
+| Action | Transaction Provided by the User | RPC Verification Result |
 |---|---|---|
-| Alice 锁 1 Rain | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0x19e2ba2ff0bd7cc2de1a29957b7e68f90abc0dd6f3b9b572a3a8abce7245f33b) | receipt.status=1，规范区块，建锁核验时 33 次确认；createERC20Swap，目标为部署的 ERC20HTLC；当时 Active |
-| Bob 锁 0.001 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0x8904baad8c7a9f9bc925729cf6a8906f29687d94149d884065f8773a85a66f0b) | receipt.status=1，规范区块，建锁核验时 1179 次 L2 确认；createETHSwap，目标为部署的 ETHHTLC；当时 Active |
-| Alice 领取 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0x71c9694e7d88e910bef6e346985870c0344fdd6e013f8beda1c931ddcf423516) | receipt.status=1，规范区块，领取核验时 1742 次 L2 确认；claim 方法和 SwapClaimed 事件对应本轮 ETH ID，状态 Claimed |
-| Bob 领取 Rain | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0x313bcfcc54bc3c588f71cb417cca43583a1a913d915cfc21665b110fd2a485d7) | 从本轮公开 SwapClaimed 事件定位；receipt.status=1，规范区块，领取核验时 33 次确认；claim 方法和事件对应本轮 Rain ID，状态 Claimed |
+| Alice locks 1 Rain | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0x19e2ba2ff0bd7cc2de1a29957b7e68f90abc0dd6f3b9b572a3a8abce7245f33b) | receipt.status=1, canonical block, 33 confirmations at lock verification; createERC20Swap, target is the deployed ERC20HTLC; Active at that time |
+| Bob locks 0.001 ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0x8904baad8c7a9f9bc925729cf6a8906f29687d94149d884065f8773a85a66f0b) | receipt.status=1, canonical block, 1179 L2 confirmations at lock verification; createETHSwap, target is the deployed ETHHTLC; Active at that time |
+| Alice claims ETH | [Arbitrum Sepolia](https://sepolia.arbiscan.io/tx/0x71c9694e7d88e910bef6e346985870c0344fdd6e013f8beda1c931ddcf423516) | receipt.status=1, canonical block, 1742 L2 confirmations at claim verification; the claim method and SwapClaimed event match this run's ETH ID, status Claimed |
+| Bob claims Rain | [Ethereum Sepolia](https://sepolia.etherscan.io/tx/0x313bcfcc54bc3c588f71cb417cca43583a1a913d915cfc21665b110fd2a485d7) | Located from this run's public SwapClaimed event; receipt.status=1, canonical block, 33 confirmations at claim verification; the claim method and event match this run's Rain ID, status Claimed |
 
-- Rain swap ID：`0x99d523eb138db7a7f61ab152f287bc49132967b1a17566c6d5afc71217a1a643`。
-- ETH swap ID：`0xf7cef6660f2b1ab49797326dfe54d0b8ba58f758cce4de1d9031f781475726bf`。
-- 共用 hashlock：`0x0978c40e0357b2a21897ab7ff0ec82a679c36ae4c401d53304cde5bd03f445a8`。
-- Rain：Alice → Bob，token 为课程 MST，1.0 Rain；ETH：Bob → Alice，token 字段为零地址，0.001 ETH。
-- Rain 截止时间 `1794287652`，ETH 截止时间 `1794284145`，实际期限差 3507 秒。读取时分别剩 6792、3279 秒；剩余秒数是各读取区块的快照，不是持续倒计时。
-- 两笔领取的目标合约、调用者、接收方和事件字段均匹配；事件秘密的哈希与上述 hashlock 一致。记录不保存秘密原文。真实成功交换路径已通过。
+- Rain swap ID: `0x99d523eb138db7a7f61ab152f287bc49132967b1a17566c6d5afc71217a1a643`.
+- ETH swap ID: `0xf7cef6660f2b1ab49797326dfe54d0b8ba58f758cce4de1d9031f781475726bf`.
+- Shared hashlock: `0x0978c40e0357b2a21897ab7ff0ec82a679c36ae4c401d53304cde5bd03f445a8`.
+- Rain: Alice → Bob, token is the course MST, 1.0 Rain; ETH: Bob → Alice, token field is the zero address, 0.001 ETH.
+- Rain deadline `1794287652`, ETH deadline `1794284145`, actual deadline gap 3507 seconds. At read time, 6792 and 3279 seconds remained respectively; the remaining seconds are a snapshot at each read block, not a continuous countdown.
+- The target contract, caller, receiver, and event fields of both claims all match; the hash of the secret in the event matches the hashlock above. The record does not store the secret itself. The real successful swap path has passed.
 
-## 新 HTTP 入口成功交换 S（2026-11-08）
+## Successful Swap S via the New HTTP Entry (2026-11-08)
 
-通过当前 HTTP/MetaMask 入口完成 **1 Rain / 0.001 ETH** 交换，并提供两笔领取交易。此前只读 RPC 核验记录为：两笔成功回执、对应合约和匹配 SwapClaimed 事件、秘密哈希一致、两边均为 Claimed。本次文档恢复没有重新访问公网或发交易。
+A **1 Rain / 0.001 ETH** swap was completed through the current HTTP/MetaMask entry, and two claim transactions were provided. The earlier read-only RPC verification recorded: both receipts successful, matching contracts and matching SwapClaimed events, secret hashes consistent, and both sides Claimed. This documentation recovery did not access the public network or send any transactions again.
 
-| 资产 | 领取交易 | 已核验结果 |
+| Asset | Claim Transaction | Verified Result |
 |---|---|---|
-| ETH / Arbitrum Sepolia，Bob → Alice | [Alice 领取 ETH](https://sepolia.arbiscan.io/tx/0x779803c9dc9e0c0b3db5242c6a65941659880b85db8f7c19e3cf154ad1b8d6ef) | receipt.status=1，Claimed |
-| Rain / Ethereum Sepolia，Alice → Bob | [Bob 领取 Rain](https://sepolia.etherscan.io/tx/0xb5e11752efda651c8c44d6b48e9e74a991dc168a7699d5c6ce7f31969e485275) | receipt.status=1，Claimed |
+| ETH / Arbitrum Sepolia, Bob → Alice | [Alice claims ETH](https://sepolia.arbiscan.io/tx/0x779803c9dc9e0c0b3db5242c6a65941659880b85db8f7c19e3cf154ad1b8d6ef) | receipt.status=1, Claimed |
+| Rain / Ethereum Sepolia, Alice → Bob | [Bob claims Rain](https://sepolia.etherscan.io/tx/0xb5e11752efda651c8c44d6b48e9e74a991dc168a7699d5c6ce7f31969e485275) | receipt.status=1, Claimed |
 
-- Rain swap ID：`0x1f91e0e9eea9e0602a44c93575d61993b2a7fef3a63b75fe20723613920c7019`。
-- ETH swap ID：`0x6275767182f55d7ef4898f8340e6be0d8851637da3bf149ec9f034c98a9b2915`。
-- 共用 hashlock：`0xec33843d1fdb98924393df237c1368db3199e89d9fb533ea97c643dc1970cc10`。
-- 实际期限 Rain=1794117828、ETH=1794115025，差值 2803 秒。记录不保存秘密原文。
+- Rain swap ID: `0x1f91e0e9eea9e0602a44c93575d61993b2a7fef3a63b75fe20723613920c7019`.
+- ETH swap ID: `0x6275767182f55d7ef4898f8340e6be0d8851637da3bf149ec9f034c98a9b2915`.
+- Shared hashlock: `0xec33843d1fdb98924393df237c1368db3199e89d9fb533ea97c643dc1970cc10`.
+- Actual deadlines Rain=1794117828, ETH=1794115025, gap 2803 seconds. The record does not store the secret itself.
 
-## Task C 开发验证与旧入口归档
+## Task C Development Verification and Legacy Entry Archive
 
-2026-11-08：单元测试 143 项、HTTP 集成 33 项、B 的 cross-chain/refund-path 集成及前端构建通过。
+2026-11-08: 143 unit tests, 33 HTTP integration tests, B's cross-chain/refund-path integration tests, and the frontend build passed.
 
-此前曾观察到 HTTP 缺少 protocol.lockCall 导出，以及仅建锁入口缺少 stopAfterLocks 分支；补回共用入口及 B 原有停止分支后，相关集成通过。开发夹具检查了备份、公开设置、状态显示、操作结果提示和刷新失效保护；这些检查使用钱包/HTTP 替身，不算 MetaMask 公网验收。
+Previously, the HTTP layer was observed to lack the protocol.lockCall export, and the lock-only entry lacked the stopAfterLocks branch; after restoring the shared entry and B's original stop branch, the related integration tests passed. The development fixtures checked backup, public setup, status display, operation result messages, and stale-after-refresh protection; these checks used wallet/HTTP stand-ins and do not count as MetaMask public-network acceptance.
 
 <details>
-<summary>旧入口公开退款证据（用户提供，非新版 HTTP 退款验收）</summary>
+<summary>Legacy entry public refund evidence (provided by the user, not acceptance of the new HTTP refund)</summary>
 
-- 单边 Rain 退款：[Sepolia 交易](https://sepolia.etherscan.io/tx/0x406c411d5a273f3fadf71fa160fc2efdf4c80f9a562c6501f17239bd019dab39),成功并返还 1 MST 给 Alice。
-- 双边退款实例 Rain ID：`0x5a39cc3a1ad59cde179de91a42c1253d5a3219513185321910e377452d589481`；ETH ID：`0x55baecb9944ee0d0e6e8a264020fcde64824295d73264ba8a21db47db27bd042`。
-- Bob 的 ETH 退款：[Arbitrum Sepolia 交易](https://sepolia.arbiscan.io/tx/0xd10269fb81ef88e561715f96c3eee66fa2d2395d7757acf87f47d6e0f9ebcd04)。成功并退回 0.001 ETH；随后该实例两边 Refunded，Alice Rain 恢复到 90。Rain 对应退款哈希未在本恢复记录中补造。
+- One-sided Rain refund: [Sepolia transaction](https://sepolia.etherscan.io/tx/0x406c411d5a273f3fadf71fa160fc2efdf4c80f9a562c6501f17239bd019dab39), succeeded and returned 1 MST to Alice.
+- Two-sided refund instance Rain ID: `0x5a39cc3a1ad59cde179de91a42c1253d5a3219513185321910e377452d589481`; ETH ID: `0x55baecb9944ee0d0e6e8a264020fcde64824295d73264ba8a21db47db27bd042`.
+- Bob's ETH refund: [Arbitrum Sepolia transaction](https://sepolia.arbiscan.io/tx/0xd10269fb81ef88e561715f96c3eee66fa2d2395d7757acf87f47d6e0f9ebcd04). Succeeded and returned 0.001 ETH; afterwards both sides of that instance are Refunded, and Alice's Rain is back to 90. The refund hash for the Rain side was not fabricated in this recovered record.
 
 </details>
 
 <details>
-<summary>main 原始历史记录：10-24/25 本地验证、10-25 公网交换、11-04 Task A 测试</summary>
+<summary>Original main history: 10-24/25 local verification, 10-25 public-network swap, 11-04 Task A tests</summary>
 
-# 验证记录（2026-10-24 / 2026-10-25）
+# Verification Records (2026-10-24 / 2026-10-25)
 
-下表保留本地验证情况；2026-10-25 已另外完成真实测试网部署和成功交换，证据见文末。
+The table below retains the local verification results; on 2026-10-25 a real testnet deployment and successful swap were also completed, with evidence at the end.
 
-| 命令 | 结果 |
+| Command | Result |
 |---|---|
-| `npm run compile` | Solidity 编译成功，目标 EVM 为 paris |
-| `npm test` | 13 项通过 |
-| `npm run abi:export` | 两份 ABI 导出成功，并与当前编译产物一致 |
-| `npm run test:cross-chain` | 两个独立 Hardhat 节点上的端到端验证通过 |
-| `npm run config:check` / `npm run deploy` | 缺少本地配置时明确退出；未提交公网交易 |
+| `npm run compile` | Solidity compiled successfully, target EVM is paris |
+| `npm test` | 13 passed |
+| `npm run abi:export` | Both ABIs exported successfully and match the current build artifacts |
+| `npm run test:cross-chain` | End-to-end verification on two independent Hardhat nodes passed |
+| `npm run config:check` / `npm run deploy` | Exits with a clear message when local configuration is missing; no public-network transaction submitted |
 
-单元测试覆盖：两类资产的创建/领取/退款规则、授权、错误秘密、无效输入、重复 ID、重复完成、到期边界、锁参数核验、双链期限差、等待确认数量、pending/confirmed 记录与按地址/ID 提取事件。
+Unit tests cover: create/claim/refund rules for both asset types, authorization, wrong secret, invalid input, duplicate ID, repeated completion, expiry boundary, lock parameter verification, deadline gap across the two chains, number of confirmations awaited, pending/confirmed records, and event extraction by address/ID.
 
-双节点集成测试覆盖：
+The two-node integration test covers:
 
-1. 分别部署 ERC20HTLC 与 ETHHTLC，并验证重复调用复用已确认地址。
-2. 使用同一部署连续执行两组全新 swap ID 的成功交换。
-3. 每次完成 approval、Rain lock、ETH lock、ETH claim、Rain claim 五笔确认交易。
-4. 从 ETH claim 事件取得秘密，核对 Rain 接收余额、两个 Claimed 状态和空 escrow 余额。
-5. ETH 链只产生其对应的 lock/claim 区块，未使用单链模拟跨链。
-6. 公开报告不包含秘密，私密文件独立保存。
-7. 注入错误 Rain 数量，确认在 Bob 锁 ETH 前中止，记录 incomplete 且没有公开秘密。
-8. 本地推进时间后，使用固定 refund 接口退回该失败场景的 Rain 锁。
+1. Deploy ERC20HTLC and ETHHTLC separately, and verify that repeated calls reuse the confirmed addresses.
+2. Use the same deployment to run two successful swaps in a row, each with fresh swap IDs.
+3. Each run completes five confirmed transactions: approval, Rain lock, ETH lock, ETH claim, Rain claim.
+4. Obtain the secret from the ETH claim event, and check the Rain receiver balance, both Claimed states, and the empty escrow balance.
+5. The ETH chain produces only its own lock/claim blocks; a single-chain simulation of cross-chain was not used.
+6. The public report does not contain the secret; the private file is stored separately.
+7. Inject a wrong Rain amount, and confirm the run aborts before Bob locks ETH, records incomplete, and has no public secret.
+8. After advancing local time, use the fixed refund interface to refund the Rain lock of that failure scenario.
 
-集成测试使用本机随机端口及 chain ID 31337/31338，脚本自动结束节点。公开记录和秘密测试文件保存在临时目录，实际路径由测试输出给出。真实测试网执行结果如下。
+The integration test uses random local ports and chain IDs 31337/31338, and the script ends the nodes automatically. Public records and secret test files are saved in a temporary directory, and the test output gives the actual path. The real testnet results follow.
 
-## 2026-10-25 真实测试网结果
+## 2026-10-25 Real Testnet Results
 
-- `npm run config:check`：两条链 chain ID、Alice/Bob 账户及资金检查通过。
-- `npm run deploy`：ERC20HTLC / ETHHTLC 均部署成功，等待两次确认并核验 runtime bytecode。
-- `npm run swap:success`：100 Rain / 0.001 ETH 交换完成，每笔交易等待两次确认。
-- 完成后独立读取两条链：两个 swap 的 status 均为 2 (Claimed)，Alice Rain=0、Bob Rain=100。
-- 公开部署及七笔交易证据见 `deployments/sepolia.json`、`deployments/arbitrumSepolia.json`、`deployments/successful-swap-2026-10-25.json`。
-- 本次没有执行公网退款演示或浏览器源码验证。
+- `npm run config:check`: chain IDs of both chains, Alice/Bob accounts, and funds checks passed.
+- `npm run deploy`: ERC20HTLC / ETHHTLC both deployed successfully, waited for two confirmations and verified runtime bytecode.
+- `npm run swap:success`: the 100 Rain / 0.001 ETH swap completed, and each transaction waited for two confirmations.
+- After completion, both chains were read independently: both swaps have status 2 (Claimed), Alice Rain=0, Bob Rain=100.
+- Public deployment and seven-transaction evidence are in `deployments/sepolia.json`, `deployments/arbitrumSepolia.json`, and `deployments/successful-swap-2026-10-25.json`.
+- This run did not execute a public-network refund demonstration or browser source verification.
 
-## 2026-11-04 Task A1/A2/A5 本地测试（分支 `taskA/lock-safety`）
+## 2026-11-04 Task A1/A2/A5 Local Tests (Branch `taskA/lock-safety`)
 
-- `npx hardhat test`：53 项通过（原有 13 项 + `test/TaskA_LockSafety.js` 新增 40 项），Node.js 22.23.4，solc 0.8.20。
-- 变异检查：临时删除 `createERC20Swap` 的前后余额检查和 `_create` 的 `receiver == msg.sender` 校验后，新增测试有 3 项失败（扣费型代币、两种资产的发送人=接收人）；之后已用 git 恢复合约。
-- 生产合约未改动，无需重新部署；未执行任何公网交易。
+- `npx hardhat test`: 53 passed (13 existing + 40 new in `test/TaskA_LockSafety.js`), Node.js 22.23.4, solc 0.8.20.
+- Mutation check: after temporarily deleting the before/after balance check in `createERC20Swap` and the `receiver == msg.sender` validation in `_create`, 3 of the new tests failed (fee-on-transfer token, sender equals receiver for both asset types); the contracts were then restored with git.
+- Production contracts were not changed, so no redeployment is needed; no public-network transactions were executed.
 
 </details>
